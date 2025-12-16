@@ -13,6 +13,8 @@ import {
 const useAuth = () => {
   const logout = async (): Promise<AuthResponse> => {
     const { data } = await client.post("/api/auth/logout");
+    localStorage.removeItem("token_osm");
+    localStorage.removeItem("user_osm");
     return data;
   };
   const login = async (payload: LoginPayload): Promise<LoginResponse> => {

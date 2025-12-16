@@ -1,18 +1,17 @@
 import React, { useEffect } from 'react';
-import { UserRole } from '../../types';
 import Sidebar from './Sidebar';
 import { Bell } from 'lucide-react';
+import { useAuthContext } from '@/context/AuthContext';
 
 interface MainLayoutProps {
   children: React.ReactNode;
-  role: UserRole;
   currentPath: string;
   onNavigate: (path: string) => void;
-  onLogout: () => void;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children, role, currentPath, onNavigate, onLogout }) => {
-  // Listen for custom navigation events from child components (Protoware Hack)
+const MainLayout: React.FC<MainLayoutProps> = ({ children, currentPath, onNavigate }) => {
+  const { user } = useAuthContext();
+  
   useEffect(() => {
     const handleNav = (e: Event) => {
         const customEvent = e as CustomEvent;
@@ -24,17 +23,28 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, role, currentPath, on
     return () => window.removeEventListener('app-navigate', handleNav);
   }, [onNavigate]);
 
+  const isAdmin = user?.user_type === 'super_user' || user?.user_type === 'staff';
+
   const handleProfileClick = () => {
-      const profilePath = role === UserRole.ADMIN ? '/admin/profile' : '/client/profile';
+      const profilePath = isAdmin ? '/admin/profile' : '/client/profile';
       onNavigate(profilePath);
   };
 
   const handleBellClick = () => {
-      if (role === UserRole.CLIENT) {
-          onNavigate('/client/notifications');
-      } else if (role === UserRole.ADMIN) {
+      if (isAdmin) {
           onNavigate('/admin/notifications');
+      } else {
+          onNavigate('/client/notifications');
       }
+  };
+  
+  const getInitials = (name: string | undefined) => {
+    if (!name) return 'U';
+    const names = name.split(' ');
+    if (names.length > 1) {
+      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
   };
 
   return (
@@ -42,10 +52,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, role, currentPath, on
       {/* Hide Sidebar when printing */}
       <div className="print:hidden h-full">
         <Sidebar 
-          role={role} 
           currentPath={currentPath}
           onNavigate={onNavigate}
-          onLogout={onLogout}
         />
       </div>
       
@@ -72,11 +80,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, role, currentPath, on
                 onClick={handleProfileClick}
               >
                   <div className="text-right hidden md:block">
-                    <p className="text-sm font-bold text-slate-800">{role === UserRole.ADMIN ? 'Staff Admin' : 'John Doe'}</p>
-                    <p className="text-xs text-slate-500">{role === UserRole.ADMIN ? 'Supervisor' : 'Client'}</p>
+                    <p className="text-sm font-bold text-slate-800 truncate">{user?.full_name}</p>
+                    <p className="text-xs text-slate-500 capitalize">{user?.user_type.replace('_', ' ')}</p>
                   </div>
                   <div className="w-8 h-8 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-xs font-bold text-primary-700">
-                      {role === UserRole.ADMIN ? 'AD' : 'CL'}
+                      {getInitials(user?.full_name)}
                   </div>
               </div>
            </div>

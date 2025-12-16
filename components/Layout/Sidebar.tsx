@@ -1,5 +1,4 @@
 import React from 'react';
-import { UserRole } from '../../types';
 import { 
   Home, 
   Package, 
@@ -20,15 +19,16 @@ import {
   Box,
   Calculator
 } from 'lucide-react';
+import { useAuthContext } from '@/context/AuthContext';
 
 interface SidebarProps {
-  role: UserRole;
   currentPath: string;
   onNavigate: (path: string) => void;
-  onLogout: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ role, currentPath, onNavigate, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate }) => {
+  const { user, logout } = useAuthContext();
+
   const adminLinks = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: <Home size={20} /> },
     
@@ -71,7 +71,17 @@ const Sidebar: React.FC<SidebarProps> = ({ role, currentPath, onNavigate, onLogo
     { name: 'Settings', path: '/client/settings', icon: <Settings size={20} /> },
   ];
 
-  const links = role === UserRole.ADMIN ? adminLinks : clientLinks;
+  const isAdmin = user?.user_type === 'super_user' || user?.user_type === 'staff';
+  const links = isAdmin ? adminLinks : clientLinks;
+
+  const getInitials = (name: string | undefined) => {
+    if (!name) return 'U';
+    const names = name.split(' ');
+    if (names.length > 1) {
+      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
 
   return (
     <div className="flex flex-col w-64 h-screen bg-slate-900 text-white border-r border-slate-800">
@@ -88,7 +98,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, currentPath, onNavigate, onLogo
               key={link.path}
               onClick={() => onNavigate(link.path)}
               className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-md transition-colors ${
-                currentPath === link.path
+                currentPath.startsWith(link.path)
                   ? 'bg-primary-600 text-white shadow-md'
                   : 'text-slate-300 hover:bg-slate-800 hover:text-white'
               }`}
@@ -103,15 +113,15 @@ const Sidebar: React.FC<SidebarProps> = ({ role, currentPath, onNavigate, onLogo
       <div className="p-4 border-t border-slate-800 flex-shrink-0">
         <div className="flex items-center mb-4 px-2">
           <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white">
-            {role === UserRole.ADMIN ? 'AD' : 'CL'}
+            {getInitials(user?.full_name)}
           </div>
-          <div className="ml-3">
-            <p className="text-sm font-medium text-white">{role === UserRole.ADMIN ? 'Staff Admin' : 'John Doe'}</p>
-            <p className="text-xs text-slate-400">{role === UserRole.ADMIN ? 'Supervisor' : 'Client'}</p>
+          <div className="ml-3 overflow-hidden">
+            <p className="text-sm font-medium text-white truncate">{user?.full_name}</p>
+            <p className="text-xs text-slate-400 truncate">{user?.email}</p>
           </div>
         </div>
         <button 
-          onClick={onLogout}
+          onClick={logout}
           className="flex items-center w-full px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 hover:text-red-300 rounded-md transition-colors"
         >
           <LogOut size={18} className="mr-3" />

@@ -275,8 +275,8 @@ function AppContent() {
 
   const userRole =
     user?.user_type === "super_user" || user?.user_type === "staff"
-      ? "admin"
-      : "client";
+      ? "ADMIN"
+      : "CLIENT";
 
   return (
     <MainLayout
