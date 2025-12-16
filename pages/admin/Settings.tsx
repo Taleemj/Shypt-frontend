@@ -1,53 +1,161 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Save, Globe, Bell, Shield, Database, DollarSign, Mail, Server, Plus, Trash2, Edit, BookOpen } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/UI/Modal';
+import useWareHouse from '@/api/warehouse/useWareHouse';
+import { WareHouse, CreateWareHousePayload, UpdateWareHousePayload } from '@/api/types/warehouse';
+
+const INITIAL_NEW_WAREHOUSE_DATA: CreateWareHousePayload = {
+  code: '',
+  zone: '',
+  rack: '',
+  bay: '',
+  shelf: '',
+};
 
 const Settings: React.FC = () => {
   const { showToast } = useToast();
+  const { fetchWareHouses, createWareHouse, updateWareHouse, deleteWareHouse } = useWareHouse();
+
   const [activeTab, setActiveTab] = useState<'GENERAL' | 'WAREHOUSES' | 'NOTIFICATIONS' | 'SECURITY' | 'HS_CODES'>('GENERAL');
 
   // --- STATE ---
   const [exchangeRate, setExchangeRate] = useState('3850');
   const [buffer, setBuffer] = useState('5'); // 5% Buffer
   const [companyName, setCompanyName] = useState('Shypt Logistics');
-  const [warehouses, setWarehouses] = useState([
-    { code: 'CN', name: 'Guangzhou', address: 'Baiyun District, Guangzhou', active: true },
-    { code: 'US', name: 'New York', address: 'Jamaica, NY 11430', active: true },
-    { code: 'UK', name: 'London', address: 'Hounslow, TW6', active: true },
-    { code: 'AE', name: 'Dubai', address: 'Deira, Dubai', active: true },
-  ]);
+  const [warehouses, setWarehouses] = useState<WareHouse[]>([]);
+  const [isLoadingWarehouses, setIsLoadingWarehouses] = useState(false);
+  
   const [staff, setStaff] = useState([
      { id: 1, name: 'Admin User', role: 'Super Admin', access: 'Full' },
      { id: 2, name: 'Warehouse Mgr', role: 'Staff', access: 'Restricted' }
   ]);
 
   // Modal States
-  const [modalType, setModalType] = useState<'WAREHOUSE' | 'STAFF' | 'TEMPLATE' | null>(null);
+  const [modalType, setModalType] = useState<'WAREHOUSE_ADD' | 'WAREHOUSE_EDIT' | 'WAREHOUSE_DELETE' | 'STAFF' | 'TEMPLATE' | null>(null);
+  const [selectedWarehouse, setSelectedWarehouse] = useState<WareHouse | UpdateWareHousePayload | null>(null);
+  const [newWarehouseData, setNewWarehouseData] = useState<CreateWareHousePayload>(INITIAL_NEW_WAREHOUSE_DATA);
   const [selectedTemplate, setSelectedTemplate] = useState('');
+
+  // --- DATA FETCHING ---
+  const loadWarehouses = () => {
+    setIsLoadingWarehouses(true);
+    fetchWareHouses()
+      .then(res => setWarehouses(res.data))
+      .catch(err => showToast(err.message || 'Failed to fetch warehouses', 'error'))
+      .finally(() => setIsLoadingWarehouses(false));
+  };
+
+  useEffect(() => {
+    if (activeTab === 'WAREHOUSES') {
+      loadWarehouses();
+    }
+  }, [activeTab]);
+
+  // Auto-generate warehouse code for ADD modal
+  useEffect(() => {
+    if (modalType === 'WAREHOUSE_ADD') {
+      const { zone, rack, bay, shelf } = newWarehouseData;
+      if (zone || rack || bay || shelf) {
+        const parts = [zone, rack, bay, shelf];
+        setNewWarehouseData(prev => ({
+          ...prev,
+          code: parts.filter(Boolean).join('-').toUpperCase()
+        }));
+      }
+    }
+  }, [newWarehouseData.zone, newWarehouseData.rack, newWarehouseData.bay, newWarehouseData.shelf, modalType]);
+  
+  // Auto-generate warehouse code for EDIT modal
+  useEffect(() => {
+    if (modalType === 'WAREHOUSE_EDIT' && selectedWarehouse) {
+      const { zone, rack, bay, shelf } = selectedWarehouse as UpdateWareHousePayload;
+       if (zone || rack || bay || shelf) {
+        const parts = [zone, rack, bay, shelf];
+        setSelectedWarehouse(prev => ({
+          ...prev!,
+          code: parts.filter(Boolean).join('-').toUpperCase()
+        }));
+      }
+    }
+  }, [
+    (selectedWarehouse as UpdateWareHousePayload)?.zone, 
+    (selectedWarehouse as UpdateWareHousePayload)?.rack, 
+    (selectedWarehouse as UpdateWareHousePayload)?.bay, 
+    (selectedWarehouse as UpdateWareHousePayload)?.shelf, 
+    modalType
+  ]);
+
 
   // --- HANDLERS ---
   const handleSaveGlobal = () => {
     showToast('System configuration saved successfully', 'success');
   };
 
-  const toggleWarehouse = (code: string) => {
-    setWarehouses(prev => prev.map(w => w.code === code ? { ...w, active: !w.active } : w));
-    showToast('Warehouse status updated', 'info');
+  const handleAddWarehouse = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!newWarehouseData.code || !newWarehouseData.zone || !newWarehouseData.rack || !newWarehouseData.bay || !newWarehouseData.shelf) {
+      showToast('All fields are required.', 'error');
+      return;
+    }
+    try {
+        await createWareHouse(newWarehouseData);
+        showToast('New Warehouse Location Added', 'success');
+        loadWarehouses();
+        setModalType(null);
+    } catch (err: any) {
+        showToast(err.response?.data?.message || 'Failed to add warehouse', 'error');
+    }
   };
 
-  const handleAddWarehouse = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleUpdateWarehouse = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const newWh = {
-       code: fd.get('code') as string,
-       name: fd.get('name') as string,
-       address: fd.get('address') as string,
-       active: true
+    if (!selectedWarehouse || !('id' in selectedWarehouse)) return;
+
+    const payload: UpdateWareHousePayload = {
+      code: selectedWarehouse.code,
+      zone: selectedWarehouse.zone,
+      rack: selectedWarehouse.rack,
+      bay: selectedWarehouse.bay,
+      shelf: selectedWarehouse.shelf
     };
-    setWarehouses([...warehouses, newWh]);
-    showToast('New Warehouse Location Added', 'success');
-    setModalType(null);
+
+    try {
+        await updateWareHouse(selectedWarehouse.id, payload);
+        showToast('Warehouse Location Updated', 'success');
+        loadWarehouses();
+        setModalType(null);
+    } catch (err: any) {
+        showToast(err.response?.data?.message || 'Failed to update warehouse', 'error');
+    }
+  };
+
+  const handleDeleteWarehouse = async () => {
+    if (!selectedWarehouse || !('id' in selectedWarehouse)) return;
+
+    try {
+        await deleteWareHouse(selectedWarehouse.id);
+        showToast('Warehouse Location Deleted', 'success');
+        loadWarehouses();
+        setModalType(null);
+    } catch (err: any) {
+        showToast(err.response?.data?.message || 'Failed to delete warehouse', 'error');
+    }
+  };
+
+  const openAddModal = () => {
+    setNewWarehouseData(INITIAL_NEW_WAREHOUSE_DATA);
+    setModalType('WAREHOUSE_ADD');
+  };
+
+  const openEditModal = (warehouse: WareHouse) => {
+    setSelectedWarehouse({ ...warehouse });
+    setModalType('WAREHOUSE_EDIT');
+  };
+
+  const openDeleteModal = (warehouse: WareHouse) => {
+    setSelectedWarehouse(warehouse);
+    setModalType('WAREHOUSE_DELETE');
   };
 
   const handleAddStaff = (e: React.FormEvent<HTMLFormElement>) => {
@@ -73,6 +181,21 @@ const Settings: React.FC = () => {
      e.preventDefault();
      showToast(`Template '${selectedTemplate}' updated`, 'success');
      setModalType(null);
+  };
+
+  const handleModalClose = () => {
+    setModalType(null);
+    setSelectedWarehouse(null);
+  }
+
+  const handleWarehouseFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+
+    if (modalType === 'WAREHOUSE_ADD') {
+      setNewWarehouseData(prev => ({ ...prev, [name]: value }));
+    } else if (modalType === 'WAREHOUSE_EDIT' && selectedWarehouse) {
+      setSelectedWarehouse(prev => ({ ...prev!, [name]: value }));
+    }
   };
 
   return (
@@ -213,31 +336,38 @@ const Settings: React.FC = () => {
           {activeTab === 'WAREHOUSES' && (
             <div className="space-y-6 animate-in fade-in duration-300">
                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium text-slate-800">Origin Warehouses</h3>
-                  <button onClick={() => setModalType('WAREHOUSE')} className="flex items-center text-sm bg-slate-800 text-white px-3 py-2 rounded hover:bg-slate-700">
+                  <h3 className="text-lg font-medium text-slate-800">Warehouse Bin Locations</h3>
+                  <button onClick={openAddModal} className="flex items-center text-sm bg-slate-800 text-white px-3 py-2 rounded hover:bg-slate-700">
                      <Plus size={14} className="mr-1" /> Add Location
                   </button>
                </div>
                
                <div className="space-y-4">
-                  {warehouses.map((wh) => (
-                     <div key={wh.code} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg bg-white">
+                  {isLoadingWarehouses ? (
+                    <p>Loading...</p>
+                  ) : warehouses.map((wh) => (
+                     <div key={wh.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg bg-white">
                         <div className="flex items-center">
                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 mr-4">
-                              {wh.code}
+                              {wh.zone}
                            </div>
                            <div>
-                              <h4 className="font-bold text-slate-800">{wh.name}</h4>
-                              <p className="text-sm text-slate-500">{wh.address}</p>
+                              <h4 className="font-bold text-slate-800">{wh.code}</h4>
+                              <p className="text-sm text-slate-500">
+                                Zone: {wh.zone}, Rack: {wh.rack}, Bay: {wh.bay}, Shelf: {wh.shelf}
+                              </p>
                            </div>
                         </div>
                         <div className="flex items-center space-x-4">
-                           <label className="flex items-center cursor-pointer">
-                              <span className="mr-2 text-sm text-slate-600">{wh.active ? 'Active' : 'Inactive'}</span>
-                              <div onClick={() => toggleWarehouse(wh.code)} className={`w-10 h-6 flex items-center bg-gray-300 rounded-full p-1 duration-300 ease-in-out cursor-pointer ${wh.active ? 'bg-green-500' : ''}`}>
-                                 <div className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${wh.active ? 'translate-x-4' : ''}`}></div>
-                              </div>
-                           </label>
+                          <span className={`text-xs font-bold px-2 py-1 rounded-full ${wh.is_occupied ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+                            {wh.is_occupied ? 'Occupied' : 'Empty'}
+                          </span>
+                          <button onClick={() => openEditModal(wh)} className="text-slate-500 hover:text-blue-600">
+                            <Edit size={16} />
+                          </button>
+                          <button onClick={() => openDeleteModal(wh)} className="text-slate-500 hover:text-red-600">
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                      </div>
                   ))}
@@ -334,27 +464,53 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
-      {/* --- MODALS --- */}
+      {/* --- WAREHOUSE MODALS --- */}
 
-      <Modal isOpen={modalType === 'WAREHOUSE'} onClose={() => setModalType(null)} title="Add Warehouse Location">
-         <form onSubmit={handleAddWarehouse} className="space-y-4">
-            <div>
-               <label className="block text-sm font-medium text-slate-700">Code (e.g., CN)</label>
-               <input name="code" required className="w-full border p-2 rounded mt-1 bg-white text-slate-900 uppercase" maxLength={2} />
+      <Modal isOpen={modalType === 'WAREHOUSE_ADD' || modalType === 'WAREHOUSE_EDIT'} onClose={handleModalClose} title={modalType === 'WAREHOUSE_EDIT' ? 'Edit Bin Location' : 'Add Bin Location'}>
+         <form onSubmit={modalType === 'WAREHOUSE_EDIT' ? handleUpdateWarehouse : handleAddWarehouse} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Zone</label>
+                <input name="zone" required onChange={handleWarehouseFormChange} value={modalType === 'WAREHOUSE_ADD' ? newWarehouseData.zone : selectedWarehouse?.zone || ''} className="w-full border p-2 rounded mt-1 bg-white text-slate-900 uppercase" maxLength={2} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Rack</label>
+                <input name="rack" required onChange={handleWarehouseFormChange} value={modalType === 'WAREHOUSE_ADD' ? newWarehouseData.rack : selectedWarehouse?.rack || ''} className="w-full border p-2 rounded mt-1 bg-white text-slate-900" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Bay</label>
+                <input name="bay" required onChange={handleWarehouseFormChange} value={modalType === 'WAREHOUSE_ADD' ? newWarehouseData.bay : selectedWarehouse?.bay || ''} className="w-full border p-2 rounded mt-1 bg-white text-slate-900" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Shelf</label>
+                <input name="shelf" required onChange={handleWarehouseFormChange} value={modalType === 'WAREHOUSE_ADD' ? newWarehouseData.shelf : selectedWarehouse?.shelf || ''} className="w-full border p-2 rounded mt-1 bg-white text-slate-900" />
+              </div>
             </div>
             <div>
-               <label className="block text-sm font-medium text-slate-700">Name</label>
-               <input name="name" required className="w-full border p-2 rounded mt-1 bg-white text-slate-900" />
-            </div>
-            <div>
-               <label className="block text-sm font-medium text-slate-700">Full Address</label>
-               <input name="address" required className="w-full border p-2 rounded mt-1 bg-white text-slate-900" />
+               <label className="block text-sm font-medium text-slate-700">Full Code</label>
+               <input name="code" required onChange={handleWarehouseFormChange} value={modalType === 'WAREHOUSE_ADD' ? newWarehouseData.code : selectedWarehouse?.code || ''} className="w-full border p-2 rounded mt-1 bg-gray-100 text-slate-600" placeholder="e.g., A-01-B-03" />
+               <p className="text-xs text-slate-500 mt-1">This is auto-generated but can be manually overridden.</p>
             </div>
             <div className="flex justify-end pt-2">
-               <button type="submit" className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700">Add Location</button>
+               <button type="button" onClick={handleModalClose} className="text-slate-600 px-4 py-2 rounded mr-2">Cancel</button>
+               <button type="submit" className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700">
+                {modalType === 'WAREHOUSE_EDIT' ? 'Update Location' : 'Add Location'}
+               </button>
             </div>
          </form>
       </Modal>
+
+      <Modal isOpen={modalType === 'WAREHOUSE_DELETE'} onClose={handleModalClose} title="Delete Warehouse Location">
+        <div className="py-4">
+          <p>Are you sure you want to delete the warehouse location <strong className="text-red-600">{selectedWarehouse?.code}</strong>? This action cannot be undone.</p>
+        </div>
+        <div className="flex justify-end pt-2">
+          <button onClick={handleModalClose} className="text-slate-600 px-4 py-2 rounded mr-2">Cancel</button>
+          <button onClick={handleDeleteWarehouse} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Delete</button>
+        </div>
+      </Modal>
+
+      {/* --- OTHER MODALS --- */}
 
       <Modal isOpen={modalType === 'STAFF'} onClose={() => setModalType(null)} title="Invite Staff Member">
          <form onSubmit={handleAddStaff} className="space-y-4">
