@@ -13,14 +13,16 @@ import {
 import StatusBadge from "../../components/UI/StatusBadge";
 import useDashboard from "@/api/dashboard/useDashboard";
 import { Counters } from "@/api/types/dashboard";
+import { useLocation } from "react-router-dom";
 
 const AdminDashboard: React.FC = () => {
   const [counters, setCounters] = useState<Counters | null>(null);
+  const { pathname } = useLocation();
   const { fetchDashboard } = useDashboard();
 
   useEffect(() => {
     fetchDashboard().then(setCounters).catch(console.error);
-  }, []);
+  }, [pathname]);
 
   // Mock Data
   // const stats = [
