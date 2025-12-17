@@ -8,6 +8,8 @@ import {
   SendOtpPayload,
   UpdateUserPayload,
   VerifyOtpPayload,
+  RegisterPayload,
+  RegisterResponse,
 } from "@/api/types/auth";
 
 const useAuth = () => {
@@ -19,6 +21,13 @@ const useAuth = () => {
   };
   const login = async (payload: LoginPayload): Promise<LoginResponse> => {
     const { data } = await client.post("/api/auth/login", payload);
+    return data;
+  };
+
+  const register = async (
+    payload: RegisterPayload
+  ): Promise<RegisterResponse> => {
+    const { data } = await client.post("/api/auth/register", payload);
     return data;
   };
 
@@ -59,6 +68,7 @@ const useAuth = () => {
     updateUserProfile,
     sendOtp,
     verifyOtp,
+    register,
     changePassword,
   };
 };

@@ -23,6 +23,17 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface RegisterPayload {
+  full_name: string;
+  email: string;
+  phone: string;
+  password: string;
+  password_confirmation?: string;
+  tin?: string;
+  address?: string;
+  passport?: string;
+}
+
 export interface AuthUser {
   id: number;
   full_name: string;
@@ -45,6 +56,12 @@ export interface LoginResponse extends AuthResponse {
     token: string;
     token_type: string;
   };
+  data: AuthUser;
+}
+
+export interface RegisterResponse extends AuthResponse {
+  status: string;
+  message: string;
   data: AuthUser;
 }
 

@@ -24,6 +24,7 @@ import {
   ChevronUp,
   Star,
   Plane,
+  User,
 } from "lucide-react";
 import Modal from "../components/UI/Modal";
 import useAuth from "@/api/auth/useAuth";
@@ -34,12 +35,21 @@ const Landing: React.FC = () => {
   const [trackId, setTrackId] = useState("");
 
   const { login: loginContext } = useAuthContext();
-  const { login: apiLogin, sendOtp, verifyOtp } = useAuth();
+  const {
+    login: apiLogin,
+    register: apiRegister,
+    sendOtp,
+    verifyOtp,
+  } = useAuth();
 
   // Auth State
   const [loginMode, setLoginMode] = useState<"ADMIN" | "CLIENT" | null>(null);
+  const [authTab, setAuthTab] = useState<"LOGIN" | "REGISTER">("LOGIN");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [authStep, setAuthStep] = useState<"CREDENTIALS" | "OTP">(
     "CREDENTIALS"
@@ -138,9 +148,13 @@ const Landing: React.FC = () => {
 
   const openLogin = (mode: "ADMIN" | "CLIENT") => {
     setLoginMode(mode);
+    setAuthTab("LOGIN");
     setAuthStep("CREDENTIALS");
     setEmail("");
     setPassword("");
+    setConfirmPassword("");
+    setFullName("");
+    setPhone("");
     setOtp("");
     setError("");
     setAdminOtp(null);
@@ -181,6 +195,38 @@ const Landing: React.FC = () => {
       setError(
         err.response?.data?.message ||
           "Login failed. Please check your credentials."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    setIsLoading(true);
+
+    try {
+      await apiRegister({
+        full_name: fullName,
+        email,
+        phone,
+        password,
+        password_confirmation: confirmPassword,
+      });
+
+      const loginResponse = await apiLogin({ email, password });
+      const { data: user, authorization } = loginResponse;
+
+      loginContext(user, authorization.token);
+      handleNavigate("/client/dashboard");
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message || "Registration failed. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -1022,8 +1068,34 @@ const Landing: React.FC = () => {
                 </div>
               )}
 
-              {/* STEP 1: CREDENTIALS */}
-              {authStep === "CREDENTIALS" && (
+              {/* AUTH TABS (Client Only) */}
+              {loginMode === "CLIENT" && (
+                <div className="flex bg-slate-100 p-1 rounded-lg mb-6">
+                  <button
+                    onClick={() => setAuthTab("LOGIN")}
+                    className={`flex-1 py-2 text-sm font-bold rounded-md transition ${
+                      authTab === "LOGIN"
+                        ? "bg-white shadow text-slate-900"
+                        : "text-slate-500"
+                    }`}
+                  >
+                    Log In
+                  </button>
+                  <button
+                    onClick={() => setAuthTab("REGISTER")}
+                    className={`flex-1 py-2 text-sm font-bold rounded-md transition ${
+                      authTab === "REGISTER"
+                        ? "bg-white shadow text-slate-900"
+                        : "text-slate-500"
+                    }`}
+                  >
+                    Create Account
+                  </button>
+                </div>
+              )}
+
+              {/* STEP 1: CREDENTIALS (LOGIN) */}
+              {authStep === "CREDENTIALS" && authTab === "LOGIN" && (
                 <form onSubmit={handleLoginSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -1079,6 +1151,121 @@ const Landing: React.FC = () => {
                       </>
                     )}
                   </button>
+                </form>
+              )}
+
+              {/* REGISTRATION FLOW */}
+              {authTab === "REGISTER" && (
+                <form
+                  onSubmit={handleRegisterSubmit}
+                  className="space-y-4 animate-in slide-in-from-right-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Full Name
+                    </label>
+                    <div className="relative">
+                      <User
+                        className="absolute left-3 top-3 text-slate-400"
+                        size={18}
+                      />
+                      <input
+                        type="text"
+                        required
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-slate-900 bg-white"
+                        placeholder="John Doe"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Email Address
+                    </label>
+                    <div className="relative">
+                      <Mail
+                        className="absolute left-3 top-3 text-slate-400"
+                        size={18}
+                      />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-slate-900 bg-white"
+                        placeholder="john@example.com"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Phone Number
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-3 text-slate-400 text-sm font-bold">
+                        +256
+                      </span>
+                      <input
+                        type="tel"
+                        required
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full pl-14 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-slate-900 bg-white"
+                        placeholder="772 123 456"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <Lock
+                        className="absolute left-3 top-3 text-slate-400"
+                        size={18}
+                      />
+                      <input
+                        type="password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-slate-900 bg-white"
+                        placeholder="Create a password"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Confirm Password
+                    </label>
+                    <div className="relative">
+                      <Lock
+                        className="absolute left-3 top-3 text-slate-400"
+                        size={18}
+                      />
+                      <input
+                        type="password"
+                        required
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-slate-900 bg-white"
+                        placeholder="Confirm your password"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full mt-2 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition flex justify-center items-center disabled:opacity-70 shadow-lg shadow-blue-100"
+                  >
+                    {isLoading ? "Creating Account..." : "Sign Up Free"}
+                  </button>
+                  <p className="text-xs text-center text-slate-400 mt-2">
+                    By signing up, you agree to our Terms.
+                  </p>
                 </form>
               )}
 
