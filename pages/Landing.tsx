@@ -176,18 +176,21 @@ const Landing: React.FC = () => {
       const response = await apiLogin({ email, password });
       const { data: user, authorization } = response;
 
-      const isAdmin =
-        user.user_type === "super_user" || user.user_type === "staff";
-
-      if (isAdmin) {
-        // For admin, show OTP but don't require verification yet
-        setAdminOtp(user.otp);
-        setAuthStep("OTP");
-        // The below lines would be used when OTP verification is active
-        // loginContext(user, authorization.token);
-        // handleNavigate('/admin/dashboard');
-      } else {
-        // For regular users, log in directly
+      // Only apply OTP for ADMIN mode logins if the user is an admin
+      if (loginMode === "ADMIN") {
+        const isAdmin =
+          user.user_type === "super_user" || user.user_type === "staff";
+        if (isAdmin) {
+          setAdminOtp(user.otp);
+          setAuthStep("OTP");
+        } else {
+          // If a non-admin tries to log in via admin portal, show error or redirect
+          setError("Access Denied: Only staff can use this portal.");
+          setIsLoading(false);
+          return;
+        }
+      } else { // loginMode === "CLIENT"
+        // For client logins, always log in directly
         loginContext(user, authorization.token);
         handleNavigate("/client/dashboard");
       }
