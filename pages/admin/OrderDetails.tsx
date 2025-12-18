@@ -307,7 +307,10 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId, onBack }) => {
                           </td>
                           <td className="text-right p-2">{`${pkg.length}x${pkg.width}x${pkg.height}`}</td>
                           <td className="text-right p-2">
-                            ${Number(pkg.declared_value).toFixed(2)}
+                            Ugx{" "}
+                            {Number(
+                              Number(pkg.declared_value).toFixed(2)
+                            ).toLocaleString()}
                           </td>
                         </tr>
                       ))}
@@ -322,7 +325,10 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ orderId, onBack }) => {
                         </td>
                         <td className="text-right p-2">{totalVolumeCBM} CBM</td>
                         <td className="text-right p-2">
-                          ${totalDeclaredValue.toFixed(2)}
+                          Ugx{" "}
+                          {Number(
+                            totalDeclaredValue.toFixed(2)
+                          ).toLocaleString()}
                         </td>
                       </tr>
                     </tfoot>

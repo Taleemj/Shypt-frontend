@@ -199,7 +199,6 @@ const MyOrders: React.FC = () => {
         isOpen={isModalOpen}
         onClose={resetModal}
         title={`Create Pre-Alert: Step ${step} of 2`}
-        wide
       >
         {step === 1 && (
           <form onSubmit={handleCreateOrder} className="space-y-4">
@@ -361,7 +360,7 @@ const MyOrders: React.FC = () => {
                   >
                     {warehouses.map((w) => (
                       <option key={w.id} value={w.id}>
-                        {w.zone} ({w.code})
+                        {w.country} ({w.code})
                       </option>
                     ))}
                   </select>
