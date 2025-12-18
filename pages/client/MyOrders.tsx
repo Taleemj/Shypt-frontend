@@ -259,7 +259,7 @@ const MyOrders: React.FC = () => {
                 className="w-full border border-slate-300 rounded p-2 mt-1"
               >
                 {warehouses.map((w) => (
-                  <option key={w.id} value={w.country}>
+                  <option key={w.id} value={w.id}>
                     {w.country} ({w.code})
                   </option>
                 ))}

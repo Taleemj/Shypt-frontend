@@ -416,7 +416,7 @@ const Orders: React.FC = () => {
                 Select a warehouse
               </option>
               {warehouses.map((warehouse) => (
-                <option key={warehouse.id} value={warehouse.country}>
+                <option key={warehouse.id} value={warehouse.id}>
                   {warehouse.country} ({warehouse.code})
                 </option>
               ))}
