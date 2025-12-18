@@ -13,7 +13,7 @@ const useOrders = () => {
   };
 
   const placeOrder = async (payload: PlaceOrderPayload) => {
-    const { data } = await client.post<{ status: string; message: string }>(
+    const { data } = await client.post<{ message: string; data: Order }>(
       "/api/orders",
       payload
     );

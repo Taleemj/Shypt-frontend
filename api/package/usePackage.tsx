@@ -2,16 +2,18 @@ import client from "..";
 import { Package, AddPackageToOrderResponse } from "../types/package";
 
 const usePackage = () => {
-  const addPackageToOrder = async (order_id: number, data: Package) => {
+  const addPackageToOrder = async (
+    data: Partial<Package> & { order_id: number }
+  ) => {
     const { data: response } = await client.post<AddPackageToOrderResponse>(
-      `/api/orders/${order_id}/packages`,
+      `/api/packages`,
       data
     );
     return response;
   };
-  const updateOrderPackage = async (order_id: number, data: Package) => {
+  const updateOrderPackage = async (data: Package) => {
     const { data: response } = await client.put<AddPackageToOrderResponse>(
-      `/api/orders/${order_id}/packages`,
+      `/api/packages/${data.id}`,
       data
     );
     return response;
