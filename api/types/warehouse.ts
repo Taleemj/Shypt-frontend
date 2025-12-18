@@ -3,6 +3,8 @@ export interface WareHouse {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  name: string;
+  country: string;
   code: string;
   zone: string;
   rack: string;
@@ -18,6 +20,8 @@ export interface WareHousesAPIResponse {
 }
 
 export interface CreateWareHousePayload {
+  name: string;
+  country: string;
   code: string;
   zone: string;
   rack: string;
@@ -27,6 +31,8 @@ export interface CreateWareHousePayload {
 }
 
 export interface UpdateWareHousePayload {
+  name?: string;
+  country?: string;
   code?: string;
   zone?: string;
   rack?: string;
