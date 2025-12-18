@@ -1,5 +1,10 @@
 import client from "..";
-import { Order, OrdersResponse, PlaceOrderPayload } from "../types/orders";
+import {
+  Order,
+  OrdersResponse,
+  PlaceOrderPayload,
+  UpdateOrderStatusPayload,
+} from "../types/orders";
 
 const useOrders = () => {
   const getOrders = async () => {
@@ -22,10 +27,7 @@ const useOrders = () => {
     return data;
   };
 
-  const updateOrder = async (
-    id: number,
-    payload: PlaceOrderPayload
-  ) => {
+  const updateOrder = async (id: number, payload: PlaceOrderPayload) => {
     const { data } = await client.put<{ status: string; message: string }>(
       `/api/orders/${id}`,
       payload
@@ -40,15 +42,9 @@ const useOrders = () => {
     return data;
   };
 
-  const updateOrderStatus = async (payload: {
-    order_id: number;
-    status: string;
-    notes: string;
-    user_id: number;
-    location: string;
-  }) => {
+  const updateOrderStatus = async (payload: UpdateOrderStatusPayload) => {
     const { data } = await client.post<{ status: string; message: string }>(
-      `/api/orders_status_hisory`,
+      `/api/order_status_hisory`,
       payload
     );
     return data;
@@ -56,7 +52,7 @@ const useOrders = () => {
 
   const deleteOrderStatusHistory = async (id: number) => {
     const { data } = await client.delete<{ status: string; message: string }>(
-      `/api/orders_status_hisory/${id}`
+      `/api/order_status_hisory/${id}`
     );
     return data;
   };

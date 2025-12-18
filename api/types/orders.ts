@@ -1,4 +1,5 @@
 import { AuthUser } from "./auth";
+import { Package } from "./package";
 
 export interface Order {
   id: number;
@@ -40,6 +41,7 @@ export interface Order {
     user: AuthUser;
   }[];
   user: AuthUser;
+  packages: Package[];
 }
 
 export interface OrdersResponse {
@@ -71,4 +73,12 @@ export interface PlaceOrderPayload {
   receiver_phone: string;
   receiver_email: string;
   receiver_address: string;
+}
+
+export interface UpdateOrderStatusPayload {
+  order_id: number;
+  status: string;
+  notes: string;
+  user_id: number;
+  location: string;
 }
