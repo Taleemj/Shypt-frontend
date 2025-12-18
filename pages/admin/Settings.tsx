@@ -65,6 +65,9 @@ const Settings: React.FC = () => {
   const [selectedWarehouse, setSelectedWarehouse] = useState<
     WareHouse | UpdateWareHousePayload | null
   >(null);
+  const [originalWarehouse, setOriginalWarehouse] = useState<WareHouse | null>(
+    null
+  );
   const [newWarehouseData, setNewWarehouseData] =
     useState<CreateWareHousePayload>(INITIAL_NEW_WAREHOUSE_DATA);
   const [selectedTemplate, setSelectedTemplate] = useState("");
@@ -161,17 +164,34 @@ const Settings: React.FC = () => {
 
   const handleUpdateWarehouse = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedWarehouse || !("id" in selectedWarehouse)) return;
+    if (!selectedWarehouse || !("id" in selectedWarehouse) || !originalWarehouse)
+      return;
 
-    const payload: UpdateWareHousePayload = {
-      name: selectedWarehouse.name,
-      country: selectedWarehouse.country,
-      code: selectedWarehouse.code,
-      zone: selectedWarehouse.zone,
-      rack: selectedWarehouse.rack,
-      bay: selectedWarehouse.bay,
-      shelf: selectedWarehouse.shelf,
-    };
+    const payload: UpdateWareHousePayload = {};
+    const fields: (keyof UpdateWareHousePayload)[] = [
+      "name",
+      "country",
+      "code",
+      "zone",
+      "rack",
+      "bay",
+      "shelf",
+    ];
+
+    fields.forEach((key) => {
+      if (
+        selectedWarehouse[key as keyof WareHouse] !==
+        originalWarehouse[key as keyof WareHouse]
+      ) {
+        payload[key] = selectedWarehouse[key as keyof WareHouse] as any;
+      }
+    });
+
+    if (Object.keys(payload).length === 0) {
+      showToast("No changes were made.", "info");
+      setModalType(null);
+      return;
+    }
 
     try {
       await updateWareHouse(selectedWarehouse.id, payload);
@@ -202,12 +222,14 @@ const Settings: React.FC = () => {
     }
   };
 
+
   const openAddModal = () => {
     setNewWarehouseData(INITIAL_NEW_WAREHOUSE_DATA);
     setModalType("WAREHOUSE_ADD");
   };
 
   const openEditModal = (warehouse: WareHouse) => {
+    setOriginalWarehouse(warehouse);
     setSelectedWarehouse({ ...warehouse });
     setModalType("WAREHOUSE_EDIT");
   };
@@ -245,6 +267,7 @@ const Settings: React.FC = () => {
   const handleModalClose = () => {
     setModalType(null);
     setSelectedWarehouse(null);
+    setOriginalWarehouse(null);
   };
 
   const handleWarehouseFormChange = (
