@@ -189,6 +189,7 @@ const MyOrders: React.FC = () => {
       <DataTable
         data={orders}
         columns={columns}
+        // @ts-ignore
         loading={loading}
         onRowClick={(o) => triggerNav(`/client/orders/${o.id}`)}
         title="Your Shipments"
@@ -199,6 +200,7 @@ const MyOrders: React.FC = () => {
         isOpen={isModalOpen}
         onClose={resetModal}
         title={`Create Pre-Alert: Step ${step} of 2`}
+        size="xl"
       >
         {step === 1 && (
           <form onSubmit={handleCreateOrder} className="space-y-4">

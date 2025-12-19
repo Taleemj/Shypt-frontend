@@ -27,6 +27,13 @@ const useOrders = () => {
     return data;
   };
 
+  const getOrderByTrackingNumber = async (tracking_number: string) => {
+    const { data } = await client.get<{ status: string; data: Order }>(
+      `/api/orders/tracking/${tracking_number}`
+    );
+    return data;
+  };
+
   const updateOrder = async (id: number, payload: PlaceOrderPayload) => {
     const { data } = await client.put<{ status: string; message: string }>(
       `/api/orders/${id}`,
@@ -60,9 +67,10 @@ const useOrders = () => {
     getOrders,
     placeOrder,
     getOrder,
+    getOrderByTrackingNumber,
     updateOrder,
-    deleteOrder,
     updateOrderStatus,
+    deleteOrder,
     deleteOrderStatusHistory,
   };
 };

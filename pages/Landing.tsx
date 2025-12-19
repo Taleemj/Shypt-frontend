@@ -29,18 +29,15 @@ import {
 import Modal from "../components/UI/Modal";
 import useAuth from "@/api/auth/useAuth";
 import { useAuthContext } from "@/context/AuthContext";
+import useOrders from "@/api/orders/useOrders";
 
 const Landing: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [trackId, setTrackId] = useState("");
 
   const { login: loginContext } = useAuthContext();
-  const {
-    login: apiLogin,
-    register: apiRegister,
-    sendOtp,
-    verifyOtp,
-  } = useAuth();
+  const { login: apiLogin, register: apiRegister } = useAuth();
+  const { getOrderByTrackingNumber } = useOrders();
 
   // Auth State
   const [loginMode, setLoginMode] = useState<"ADMIN" | "CLIENT" | null>(null);
@@ -67,9 +64,11 @@ const Landing: React.FC = () => {
   // FAQ State
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  // Tracking Simulation State
+  // Tracking State
   const [showTrackingModal, setShowTrackingModal] = useState(false);
   const [trackingResult, setTrackingResult] = useState<any>(null);
+  const [isTracking, setIsTracking] = useState(false);
+  const [trackingError, setTrackingError] = useState("");
 
   useEffect(() => {
     const rates: Record<string, { AIR: number; SEA: number }> = {
@@ -82,68 +81,79 @@ const Landing: React.FC = () => {
     setEstCost(rate * calcWeight);
   }, [calcOrigin, calcMode, calcWeight]);
 
-  const handleTrack = (e: React.FormEvent) => {
+  const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!trackId.trim()) return;
 
-    // Simulate Data
-    const mockData = {
-      id: trackId.toUpperCase(),
-      desc: "Package/Consolidation",
-      status: "IN_TRANSIT",
-      origin: "Guangzhou (CN)",
-      destination: "Kampala (UG)",
-      eta: "2025-03-15",
-      carrier: "Qatar Airways",
-      timeline: [
-        {
-          status: "Received at Warehouse",
-          date: "2025-03-08 14:30",
-          loc: "Guangzhou, CN",
-          completed: true,
-        },
-        {
-          status: "Consolidated into MAWB",
-          date: "2025-03-09 09:00",
-          loc: "Guangzhou, CN",
-          completed: true,
-        },
-        {
-          status: "Departed Origin",
-          date: "2025-03-10 18:45",
-          loc: "Baiyun Airport (CAN)",
-          completed: true,
-        },
-        {
-          status: "In Transit",
-          date: "On Schedule",
-          loc: "Flight QR-882",
-          completed: true,
-          current: true,
-        },
-        {
-          status: "Arrived at Destination",
-          date: "Est. 2025-03-15",
-          loc: "Entebbe (EBB)",
-          completed: false,
-        },
-        {
-          status: "Customs Clearance",
-          date: "Pending",
-          loc: "URA Bond",
-          completed: false,
-        },
-        {
-          status: "Ready for Pickup",
-          date: "Pending",
-          loc: "Kampala Warehouse",
-          completed: false,
-        },
-      ],
-    };
+    setIsTracking(true);
+    setTrackingError("");
+    setTrackingResult(null);
 
-    setTrackingResult(mockData);
-    setShowTrackingModal(true);
+    try {
+      const response = await getOrderByTrackingNumber(trackId.trim());
+      const order = response.data;
+
+      const ORDER_STATUS_FLOW = [
+        "PENDING",
+        "RECEIVED",
+        "CONSOLIDATED",
+        "DISPATCHED",
+        "IN_TRANSIT",
+        "ARRIVED",
+        "READY_FOR_RELEASE",
+        "RELEASED",
+        "DELIVERED",
+      ];
+
+      const currentStatusIndex = ORDER_STATUS_FLOW.indexOf(order.status);
+
+      // Sort history to be safe, newest first.
+      const sortedHistory = [...order.status_history].sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      const timeline = ORDER_STATUS_FLOW.map((status, index) => {
+        const historyEvent = sortedHistory.find((h) => h.status === status);
+        const isCompleted = index <= currentStatusIndex;
+        const isCurrent = index === currentStatusIndex;
+
+        return {
+          status: status
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (l) => l.toUpperCase()),
+          date: historyEvent
+            ? new Date(historyEvent.created_at).toLocaleString()
+            : "Pending",
+          loc: historyEvent ? historyEvent.location : "N/A",
+          completed: isCompleted,
+          current: isCurrent,
+        };
+      });
+
+      const trackingData = {
+        id: order.tracking_number,
+        desc: `Shipment from ${order.origin_country}`,
+        status: order.status.replace(/_/g, " "),
+        origin: order.origin_country,
+        destination: order.receiver_address,
+        eta: order.arrived_at
+          ? new Date(order.arrived_at).toLocaleDateString()
+          : "Pending",
+        carrier: "Shypt Logistics",
+        timeline: timeline,
+      };
+
+      setTrackingResult(trackingData);
+      setShowTrackingModal(true);
+    } catch (err: any) {
+      console.error("eorrored", err);
+      setTrackingError(
+        err.response?.data?.message || "Tracking number not found."
+      );
+    } finally {
+      setIsTracking(false);
+    }
   };
 
   const openLogin = (mode: "ADMIN" | "CLIENT") => {
@@ -189,7 +199,8 @@ const Landing: React.FC = () => {
           setIsLoading(false);
           return;
         }
-      } else { // loginMode === "CLIENT"
+      } else {
+        // loginMode === "CLIENT"
         // For client logins, always log in directly
         loginContext(user, authorization.token);
         handleNavigate("/client/dashboard");
@@ -465,11 +476,17 @@ const Landing: React.FC = () => {
                 </div>
                 <button
                   type="submit"
-                  className="bg-primary-600 hover:bg-primary-500 text-white h-12 px-8 rounded-full font-bold transition"
+                  disabled={isTracking}
+                  className="bg-primary-600 hover:bg-primary-500 text-white h-12 px-8 rounded-full font-bold transition disabled:opacity-70"
                 >
-                  Track
+                  {isTracking ? "Tracking..." : "Track"}
                 </button>
               </form>
+              {trackingError && (
+                <p className="text-red-400 text-sm mt-2 text-center lg:text-left">
+                  {trackingError}
+                </p>
+              )}
               <div className="mt-4 flex items-center justify-center lg:justify-start space-x-6 text-sm text-slate-500">
                 <span className="flex items-center">
                   <CheckCircle size={14} className="mr-2 text-green-500" /> No
