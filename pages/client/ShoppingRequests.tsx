@@ -18,6 +18,7 @@ const ShoppingRequests: React.FC = () => {
   const [requests, setRequests] = useState<AssistedShoppingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const triggerNav = (path: string) => {
     window.dispatchEvent(new CustomEvent("app-navigate", { detail: path }));
@@ -26,11 +27,11 @@ const ShoppingRequests: React.FC = () => {
   const fetchRequests = async () => {
     try {
       setIsLoading(true);
+      setError(null);
       const response = await listAssistedShoppingRequests();
       setRequests(response.data.data);
     } catch (err) {
       setError("Failed to fetch shopping requests.");
-      showToast("Failed to fetch shopping requests.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -42,7 +43,9 @@ const ShoppingRequests: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    setIsSubmitting(true);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     const payload: AddAssistedShoppingPayload = {
       name: fd.get("item") as string,
       url: fd.get("url") as string,
@@ -54,10 +57,12 @@ const ShoppingRequests: React.FC = () => {
       await addAssistedShopping(payload);
       showToast("Request submitted! We will send a quote shortly.", "success");
       setIsModalOpen(false);
-      e.currentTarget.reset();
-      fetchRequests(); // Refetch to show the new request
+      form.reset();
+      await fetchRequests();
     } catch (error) {
       showToast("Failed to submit request.", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -230,9 +235,17 @@ const ShoppingRequests: React.FC = () => {
           <div className="flex justify-end pt-4">
             <button
               type="submit"
-              className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700"
+              disabled={isSubmitting}
+              className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700 flex items-center justify-center w-40 disabled:bg-primary-400 disabled:cursor-not-allowed"
             >
-              Submit Request
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Submitting...
+                </>
+              ) : (
+                "Submit Request"
+              )}
             </button>
           </div>
         </form>

@@ -24,7 +24,10 @@ import {
 } from "../../components/UI/SecurityFeatures";
 import Modal from "../../components/UI/Modal";
 import useAssistedShopping from "../../api/assistedShopping/useAssistedShopping";
-import { AssistedShoppingItem, UpdateAssistedShoppingPayload } from "../../api/types/assistedShopping";
+import {
+  AssistedShoppingItem,
+  UpdateAssistedShoppingPayload,
+} from "../../api/types/assistedShopping";
 
 interface ShoppingDetailsProps {
   requestId: string;
@@ -45,21 +48,21 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
 
   const fetchRequestDetails = async () => {
     try {
-        setIsLoading(true);
-        const id = parseInt(requestId.replace("REQ-", ""), 10);
-        const response = await getAssistedShopping(id);
-        setRequest(response.data);
+      setIsLoading(true);
+      const id = parseInt(requestId.replace("REQ-", ""), 10);
+      const response = await getAssistedShopping(id);
+      setRequest(response.data);
     } catch (err) {
-        setError("Failed to fetch request details.");
-        showToast("Failed to fetch request details.", "error");
+      setError("Failed to fetch request details.");
+      showToast("Failed to fetch request details.", "error");
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     if (requestId) {
-        fetchRequestDetails();
+      fetchRequestDetails();
     }
   }, [requestId]);
 
@@ -68,41 +71,52 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
     if (!request) return;
     const fd = new FormData(e.currentTarget);
     const payload: UpdateAssistedShoppingPayload = {
-        name: request.name,
-        url: request.url,
-        quantity: request.quantity,
-        notes: request.notes,
-        status: "purchased",
-        retailer_ref: fd.get("retailer_ref") as string,
-        carrier: fd.get("carrier") as string,
-        tracking_ref: fd.get("tracking_ref") as string,
+      name: request.name,
+      url: request.url,
+      quantity: request.quantity,
+      notes: request.notes,
+      status: "purchased",
+      retailer_ref: fd.get("retailer_ref") as string,
+      carrier: fd.get("carrier") as string,
+      tracking_ref: fd.get("tracking_ref") as string,
     };
 
     try {
-        await updateAssistedShopping(request.id, payload);
-        showToast("Procurement details saved. Item marked as Purchased.", "success");
-        setModalMode(null);
-        fetchRequestDetails();
+      await updateAssistedShopping(request.id, payload);
+      showToast(
+        "Procurement details saved. Item marked as Purchased.",
+        "success"
+      );
+      setModalMode(null);
+      fetchRequestDetails();
     } catch (error) {
-        showToast("Failed to save procurement details.", "error");
+      showToast("Failed to save procurement details.", "error");
     }
   };
 
   if (isLoading) {
     return (
-        <div className="flex flex-col justify-center items-center h-96">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500"></div>
-            <p className="mt-4 text-gray-600">Loading Request Details...</p>
-        </div>
+      <div className="flex flex-col justify-center items-center h-96">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500"></div>
+        <p className="mt-4 text-gray-600">Loading Request Details...</p>
+      </div>
     );
   }
 
   if (error || !request) {
-    return <div className="text-center text-red-500 bg-red-100 p-4 rounded">{error || "Request not found."}</div>;
+    return (
+      <div className="text-center text-red-500 bg-red-100 p-4 rounded">
+        {error || "Request not found."}
+      </div>
+    );
   }
 
-  const quoteTotal = request.quotes?.reduce((acc, q) => acc + q.unit_price * q.quantity, 0) || 0;
-  const quoteSubtotal = request.quotes?.filter(q => q.item_name !== 'Service Fee (10%)').reduce((acc, q) => acc + q.unit_price * q.quantity, 0) || 0;
+  const quoteTotal =
+    request.quotes?.reduce((acc, q) => acc + q.unit_price * q.quantity, 0) || 0;
+  const quoteSubtotal =
+    request.quotes
+      ?.filter((q) => q.item_name !== "Service Fee (10%)")
+      .reduce((acc, q) => acc + q.unit_price * q.quantity, 0) || 0;
   const serviceFee = quoteTotal - quoteSubtotal;
 
   return (
@@ -159,9 +173,7 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                   <p className="font-bold text-slate-900">
                     {request.user.full_name}
                   </p>
-                  <p className="text-sm text-slate-500">
-                    {request.user.email}
-                  </p>
+                  <p className="text-sm text-slate-500">{request.user.email}</p>
                   <p className="text-xs font-mono text-slate-400 mt-1">
                     ID: CL-{request.user.id}
                   </p>
@@ -173,9 +185,7 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                   <p className="font-bold text-slate-900 text-lg">
                     {request.name}
                   </p>
-                  <p className="text-sm text-slate-600 mt-1">
-                    {request.notes}
-                  </p>
+                  <p className="text-sm text-slate-600 mt-1">{request.notes}</p>
                 </div>
               </div>
 
@@ -198,9 +208,7 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                       <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">
                         Carrier
                       </p>
-                      <p className="text-sm font-bold">
-                        {request.carrier}
-                      </p>
+                      <p className="text-sm font-bold">{request.carrier}</p>
                     </div>
                     <div>
                       <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">
@@ -219,13 +227,15 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                   <DollarSign size={14} /> Financial Audit
                 </div>
                 <div className="space-y-3 text-sm">
-                  {request.quotes?.map(quote => (
-                     <div className="flex justify-between" key={quote.id}>
-                        <span>{quote.item_name} (x{quote.quantity})</span>
-                        <span className="font-mono">
-                          ${(quote.unit_price * quote.quantity).toFixed(2)}
-                        </span>
-                      </div>
+                  {request.quotes?.map((quote) => (
+                    <div className="flex justify-between" key={quote.id}>
+                      <span>
+                        {quote.item_name} (x{quote.quantity})
+                      </span>
+                      <span className="font-mono">
+                        ${(quote.unit_price * quote.quantity).toFixed(2)}
+                      </span>
+                    </div>
                   ))}
                   <div className="flex justify-between font-black text-xl text-slate-900 border-t border-slate-200 pt-4 mt-2 print:border-slate-800">
                     <span>TOTAL COLLECTED</span>
@@ -234,7 +244,10 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                 </div>
               </div>
               <div className="hidden print:block">
-                <SecurityFooter type="ORIGINAL" reference={`REQ-${request.id}`} />
+                <SecurityFooter
+                  type="ORIGINAL"
+                  reference={`REQ-${request.id}`}
+                />
               </div>
             </div>
           </div>

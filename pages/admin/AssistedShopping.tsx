@@ -30,6 +30,7 @@ const AssistedShopping: React.FC = () => {
   const [modalMode, setModalMode] = useState<
     "QUOTE" | "PURCHASE" | "REJECT" | null
   >(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [quoteCost, setQuoteCost] = useState<number>(0);
   const [quoteShip, setQuoteShip] = useState<number>(0);
@@ -77,6 +78,7 @@ const AssistedShopping: React.FC = () => {
   const handleQuoteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedReq) return;
+    setIsSubmitting(true);
 
     try {
       if (quoteCost > 0) {
@@ -119,12 +121,15 @@ const AssistedShopping: React.FC = () => {
       fetchRequests();
     } catch (error) {
       showToast("Failed to send quotation.", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handlePurchaseSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedReq) return;
+    setIsSubmitting(true);
     const fd = new FormData(e.currentTarget);
     const payload: UpdateAssistedShoppingPayload = {
       name: selectedReq.name,
@@ -147,6 +152,8 @@ const AssistedShopping: React.FC = () => {
       fetchRequests();
     } catch (error) {
       showToast("Failed to save procurement details.", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -164,6 +171,7 @@ const AssistedShopping: React.FC = () => {
     {
       header: "Client",
       accessor: (req) => req.user.full_name,
+      // @ts-ignore
       sortKey: "user.full_name",
       sortable: true,
     },
@@ -320,9 +328,17 @@ const AssistedShopping: React.FC = () => {
           </div>
           <button
             type="submit"
-            className="w-full bg-primary-600 text-white py-3 rounded-lg font-bold hover:bg-primary-700 shadow-lg transition"
+            disabled={isSubmitting}
+            className="w-full bg-primary-600 text-white py-3 rounded-lg font-bold hover:bg-primary-700 shadow-lg transition flex items-center justify-center disabled:bg-primary-400 disabled:cursor-not-allowed"
           >
-            Send Quotation to Client
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Sending...
+              </>
+            ) : (
+              "Send Quotation to Client"
+            )}
           </button>
         </form>
       </Modal>
@@ -383,9 +399,19 @@ const AssistedShopping: React.FC = () => {
           </div>
           <button
             type="submit"
-            className="w-full bg-slate-900 text-white py-3 rounded-lg font-bold hover:bg-slate-800 shadow-lg transition flex items-center justify-center"
+            disabled={isSubmitting}
+            className="w-full bg-slate-900 text-white py-3 rounded-lg font-bold hover:bg-slate-800 shadow-lg transition flex items-center justify-center disabled:bg-slate-600 disabled:cursor-not-allowed"
           >
-            <Truck size={18} className="mr-2" /> Confirm & Save Records
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Truck size={18} className="mr-2" /> Confirm & Save Records
+              </>
+            )}
           </button>
         </form>
       </Modal>
