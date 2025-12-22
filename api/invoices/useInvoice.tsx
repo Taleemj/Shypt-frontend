@@ -1,15 +1,15 @@
 import client from "..";
 import {
-    Invoice,
-    PaginatedInvoicesResponse,
-    CreateInvoicePayload,
-    UpdateInvoicePayload,
-    AddItemToInvoicePayload,
-    LineItem,
-    UpdateInvoiceItemPayload,
-    RecordPaymentPayload,
-    Payment,
-    MessageResponse
+  Invoice,
+  PaginatedInvoicesResponse,
+  CreateInvoicePayload,
+  UpdateInvoicePayload,
+  AddItemToInvoicePayload,
+  LineItem,
+  UpdateInvoiceItemPayload,
+  RecordPaymentPayload,
+  Payment,
+  MessageResponse,
 } from "../types/invoice";
 
 const useInvoice = () => {
@@ -18,7 +18,9 @@ const useInvoice = () => {
     return data;
   };
 
-  const createInvoice = async (payload: CreateInvoicePayload): Promise<Invoice> => {
+  const createInvoice = async (
+    payload: CreateInvoicePayload
+  ): Promise<Invoice> => {
     const { data } = await client.post(`/api/billing/invoices`, payload);
     return data;
   };
@@ -28,8 +30,14 @@ const useInvoice = () => {
     return data;
   };
 
-  const updateInvoice = async (invoiceId: number, payload: UpdateInvoicePayload): Promise<Invoice> => {
-    const { data } = await client.put(`/api/billing/invoices/${invoiceId}`, payload);
+  const updateInvoice = async (
+    invoiceId: number,
+    payload: UpdateInvoicePayload
+  ): Promise<Invoice> => {
+    const { data } = await client.put(
+      `/api/billing/invoices/${invoiceId}`,
+      payload
+    );
     return data;
   };
 
@@ -38,42 +46,71 @@ const useInvoice = () => {
     return data;
   };
 
-  const restoreInvoice = async (invoiceId: number): Promise<MessageResponse> => {
-    const { data } = await client.post(`/api/billing/invoices/${invoiceId}/restore`);
+  const restoreInvoice = async (
+    invoiceId: number
+  ): Promise<MessageResponse> => {
+    const { data } = await client.post(
+      `/api/billing/invoices/${invoiceId}/restore`
+    );
     return data;
   };
 
-  const sendInvoiceByEmail = async (invoiceId: number): Promise<MessageResponse> => {
+  const sendInvoiceByEmail = async (
+    invoiceId: number
+  ): Promise<MessageResponse> => {
     const { data } = await client.get(`/api/billing/send_invoice/${invoiceId}`);
     return data;
   };
 
-  const addItemToInvoice = async (payload: AddItemToInvoicePayload): Promise<LineItem> => {
-    const { data } = await client.post(`/api/billing/invoice-line-items`, payload);
+  const addItemToInvoice = async (
+    payload: AddItemToInvoicePayload
+  ): Promise<LineItem> => {
+    const { data } = await client.post(
+      `/api/billing/invoice-line-items`,
+      payload
+    );
     return data;
   };
 
-  const updateInvoiceItem = async (itemId: number, payload: UpdateInvoiceItemPayload): Promise<LineItem> => {
-    const { data } = await client.put(`/api/billing/invoice-line-items/${itemId}`, payload);
+  const updateInvoiceItem = async (
+    itemId: number,
+    payload: UpdateInvoiceItemPayload
+  ): Promise<LineItem> => {
+    const { data } = await client.put(
+      `/api/billing/invoice-line-items/${itemId}`,
+      payload
+    );
     return data;
   };
 
-  const deleteInvoiceItem = async (itemId: number): Promise<MessageResponse> => {
-    const { data } = await client.delete(`/api/billing/invoice-line-items/${itemId}`);
+  const deleteInvoiceItem = async (
+    itemId: number
+  ): Promise<MessageResponse> => {
+    const { data } = await client.delete(
+      `/api/billing/invoice-line-items/${itemId}`
+    );
     return data;
   };
 
-  const restoreInvoiceItem = async (itemId: number): Promise<MessageResponse> => {
-    const { data } = await client.post(`/api/billing/invoice-line-items/${itemId}/restore`);
+  const restoreInvoiceItem = async (
+    itemId: number
+  ): Promise<MessageResponse> => {
+    const { data } = await client.post(
+      `/api/billing/invoice-line-items/${itemId}/restore`
+    );
     return data;
   };
 
-  const recordInvoicePayment = async (payload: RecordPaymentPayload): Promise<Payment> => {
+  const recordInvoicePayment = async (
+    payload: RecordPaymentPayload
+  ): Promise<Payment> => {
     const { data } = await client.post(`/api/billing/payments`, payload);
     return data;
   };
 
-  const deleteInvoicePayment = async (paymentId: number): Promise<MessageResponse> => {
+  const deleteInvoicePayment = async (
+    paymentId: number
+  ): Promise<MessageResponse> => {
     const { data } = await client.delete(`/api/billing/payments/${paymentId}`);
     return data;
   };
