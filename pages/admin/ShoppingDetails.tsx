@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ArrowLeft,
   ExternalLink,
@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Tag,
   Info,
+  AlertCircle,
 } from "lucide-react";
 import StatusBadge from "../../components/UI/StatusBadge";
 import { useToast } from "../../context/ToastContext";
@@ -22,6 +23,8 @@ import {
   SecurityFooter,
 } from "../../components/UI/SecurityFeatures";
 import Modal from "../../components/UI/Modal";
+import useAssistedShopping from "../../api/assistedShopping/useAssistedShopping";
+import { AssistedShoppingItem, UpdateAssistedShoppingPayload } from "../../api/types/assistedShopping";
 
 interface ShoppingDetailsProps {
   requestId: string;
@@ -34,31 +37,73 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
 }) => {
   const { showToast } = useToast();
   const [modalMode, setModalMode] = useState<"QUOTE" | "PURCHASE" | null>(null);
+  const [request, setRequest] = useState<AssistedShoppingItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [request, setRequest] = useState({
-    id: requestId,
-    status: requestId === "REQ-2025-005" ? "PURCHASED" : "REQUESTED",
-    date: "2025-03-01",
-    client: {
-      name: "John Doe",
-      id: "CL-8821",
-      email: "john@example.com",
-      phone: "+256 772 123456",
-    },
-    item: {
-      name: "MacBook Pro 14-inch (M4 Pro)",
-      url: "https://apple.com/shop/buy-mac/macbook-pro/14-inch-m4-pro",
-      description: "Space Black, 1TB SSD, 18GB RAM",
-      qty: 1,
-    },
-    quote: { cost: 2399.0, ship: 0.0, fee: 239.9, total: 2638.9 },
-    procurement: {
-      retailerRef: requestId === "REQ-2025-005" ? "AMZN-99122-11" : "",
-      carrier: requestId === "REQ-2025-005" ? "UPS" : "",
-      tracking: requestId === "REQ-2025-005" ? "1Z998122X" : "",
-    },
-    timeline: [{ date: "2025-03-01 10:30", event: "Request Logged" }],
-  });
+  const { getAssistedShopping, updateAssistedShopping } = useAssistedShopping();
+
+  const fetchRequestDetails = async () => {
+    try {
+        setIsLoading(true);
+        const id = parseInt(requestId.replace("REQ-", ""), 10);
+        const response = await getAssistedShopping(id);
+        setRequest(response.data);
+    } catch (err) {
+        setError("Failed to fetch request details.");
+        showToast("Failed to fetch request details.", "error");
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (requestId) {
+        fetchRequestDetails();
+    }
+  }, [requestId]);
+
+  const handlePurchaseSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!request) return;
+    const fd = new FormData(e.currentTarget);
+    const payload: UpdateAssistedShoppingPayload = {
+        name: request.name,
+        url: request.url,
+        quantity: request.quantity,
+        notes: request.notes,
+        status: "purchased",
+        retailer_ref: fd.get("retailer_ref") as string,
+        carrier: fd.get("carrier") as string,
+        tracking_ref: fd.get("tracking_ref") as string,
+    };
+
+    try {
+        await updateAssistedShopping(request.id, payload);
+        showToast("Procurement details saved. Item marked as Purchased.", "success");
+        setModalMode(null);
+        fetchRequestDetails();
+    } catch (error) {
+        showToast("Failed to save procurement details.", "error");
+    }
+  };
+
+  if (isLoading) {
+    return (
+        <div className="flex flex-col justify-center items-center h-96">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500"></div>
+            <p className="mt-4 text-gray-600">Loading Request Details...</p>
+        </div>
+    );
+  }
+
+  if (error || !request) {
+    return <div className="text-center text-red-500 bg-red-100 p-4 rounded">{error || "Request not found."}</div>;
+  }
+
+  const quoteTotal = request.quotes?.reduce((acc, q) => acc + q.unit_price * q.quantity, 0) || 0;
+  const quoteSubtotal = request.quotes?.filter(q => q.item_name !== 'Service Fee (10%)').reduce((acc, q) => acc + q.unit_price * q.quantity, 0) || 0;
+  const serviceFee = quoteTotal - quoteSubtotal;
 
   return (
     <div className="space-y-6">
@@ -72,12 +117,12 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
           </button>
           <div>
             <h2 className="text-xl font-black text-slate-800 tracking-tight">
-              {request.id}
+              REQ-{request.id}
             </h2>
             <div className="flex items-center gap-2 mt-1">
-              <StatusBadge status={request.status} />
+              <StatusBadge status={request.status.toUpperCase()} />
               <span className="text-xs text-slate-400">
-                • Created {request.date}
+                • Created {new Date(request.created_at).toLocaleDateString()}
               </span>
             </div>
           </div>
@@ -89,7 +134,7 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
           >
             <Printer size={16} className="mr-2" /> Print Quote
           </button>
-          {request.status === "PAID" && (
+          {request.status === "paid" && (
             <button
               onClick={() => setModalMode("PURCHASE")}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-bold shadow-md"
@@ -103,7 +148,7 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6 print:w-full">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 relative overflow-hidden print:border-none print:shadow-none">
-            <Watermark text={request.status} />
+            <Watermark text={request.status.toUpperCase()} />
             <SecureHeader title="Procurement Summary" />
             <div className="relative z-10">
               <div className="grid grid-cols-2 gap-12 mb-10 pb-8 border-b border-slate-100 print:border-slate-800">
@@ -112,13 +157,13 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                     Consignee
                   </p>
                   <p className="font-bold text-slate-900">
-                    {request.client.name}
+                    {request.user.full_name}
                   </p>
                   <p className="text-sm text-slate-500">
-                    {request.client.email}
+                    {request.user.email}
                   </p>
                   <p className="text-xs font-mono text-slate-400 mt-1">
-                    ID: {request.client.id}
+                    ID: CL-{request.user.id}
                   </p>
                 </div>
                 <div className="text-right">
@@ -126,15 +171,15 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                     Item details
                   </p>
                   <p className="font-bold text-slate-900 text-lg">
-                    {request.item.name}
+                    {request.name}
                   </p>
                   <p className="text-sm text-slate-600 mt-1">
-                    {request.item.description}
+                    {request.notes}
                   </p>
                 </div>
               </div>
 
-              {request.status === "PURCHASED" && (
+              {request.status === "purchased" && (
                 <div className="mb-10 bg-slate-900 text-white p-6 rounded-2xl shadow-xl ring-1 ring-slate-800">
                   <h4 className="flex items-center text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-4">
                     <ShieldCheck size={14} className="mr-2 text-green-400" />{" "}
@@ -146,7 +191,7 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                         Retailer ID
                       </p>
                       <p className="font-mono text-sm font-bold text-primary-400">
-                        {request.procurement.retailerRef}
+                        {request.retailer_ref}
                       </p>
                     </div>
                     <div>
@@ -154,7 +199,7 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                         Carrier
                       </p>
                       <p className="text-sm font-bold">
-                        {request.procurement.carrier}
+                        {request.carrier}
                       </p>
                     </div>
                     <div>
@@ -162,7 +207,7 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                         Origin Tracking
                       </p>
                       <p className="font-mono text-sm font-bold text-green-400">
-                        {request.procurement.tracking}
+                        {request.tracking_ref}
                       </p>
                     </div>
                   </div>
@@ -174,32 +219,22 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                   <DollarSign size={14} /> Financial Audit
                 </div>
                 <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span>Base Item Cost</span>
-                    <span className="font-mono">
-                      ${request.quote.cost.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Domestic Shipping</span>
-                    <span className="font-mono">
-                      ${request.quote.ship.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-primary-600 font-bold">
-                    <span>WOFMS Service Fee (10%)</span>
-                    <span className="font-mono">
-                      ${request.quote.fee.toFixed(2)}
-                    </span>
-                  </div>
+                  {request.quotes?.map(quote => (
+                     <div className="flex justify-between" key={quote.id}>
+                        <span>{quote.item_name} (x{quote.quantity})</span>
+                        <span className="font-mono">
+                          ${(quote.unit_price * quote.quantity).toFixed(2)}
+                        </span>
+                      </div>
+                  ))}
                   <div className="flex justify-between font-black text-xl text-slate-900 border-t border-slate-200 pt-4 mt-2 print:border-slate-800">
                     <span>TOTAL COLLECTED</span>
-                    <span>${request.quote.total.toFixed(2)}</span>
+                    <span>${quoteTotal.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
               <div className="hidden print:block">
-                <SecurityFooter type="ORIGINAL" reference={request.id} />
+                <SecurityFooter type="ORIGINAL" reference={`REQ-${request.id}`} />
               </div>
             </div>
           </div>
@@ -218,6 +253,68 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
           </div>
         </div>
       </div>
+      <Modal
+        isOpen={modalMode === "PURCHASE"}
+        onClose={() => setModalMode(null)}
+        title="Procurement Record"
+      >
+        <form onSubmit={handlePurchaseSubmit} className="space-y-4">
+          <div className="bg-green-50 p-4 rounded-lg text-green-800 text-xs border border-green-100 flex items-start gap-3">
+            <AlertCircle size={16} />
+            <p>
+              Items marked as <strong>PURCHASED</strong> will allow origin
+              warehouse staff to link this request to an incoming package using
+              the Retailer Reference below.
+            </p>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+              Retailer Order ID <span className="text-red-500">*</span>
+            </label>
+            <input
+              required
+              name="retailer_ref"
+              placeholder="e.g. AMZN-114-2233..."
+              className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900 font-mono"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                Carrier
+              </label>
+              <select
+                name="carrier"
+                className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900"
+              >
+                <option>UPS</option>
+                <option>FedEx</option>
+                <option>USPS</option>
+                <option>DHL</option>
+                <option>Amazon Logistic</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                Tracking Number
+              </label>
+              <input
+                required
+                name="tracking_ref"
+                placeholder="e.g. 1Z99..."
+                className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900 font-mono"
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-slate-900 text-white py-3 rounded-lg font-bold hover:bg-slate-800 shadow-lg transition flex items-center justify-center"
+          >
+            <Truck size={18} className="mr-2" /> Confirm & Save Records
+          </button>
+        </form>
+      </Modal>
     </div>
   );
 };

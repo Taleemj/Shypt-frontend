@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ShoppingCart,
   ExternalLink,
@@ -16,23 +16,17 @@ import StatusBadge from "../../components/UI/StatusBadge";
 import Modal from "../../components/UI/Modal";
 import { useToast } from "../../context/ToastContext";
 import { DataTable, Column } from "../../components/UI/DataTable";
-
-interface ShopReq {
-  id: string;
-  client: string;
-  item: string;
-  url: string;
-  price: number;
-  status: string;
-  date: string;
-  retailerRef?: string;
-  carrier?: string;
-  trackingRef?: string;
-}
+import useAssistedShopping from "../../api/assistedShopping/useAssistedShopping";
+import {
+  AssistedShoppingItem,
+  UpdateAssistedShoppingPayload,
+} from "../../api/types/assistedShopping";
 
 const AssistedShopping: React.FC = () => {
   const { showToast } = useToast();
-  const [selectedReq, setSelectedReq] = useState<ShopReq | null>(null);
+  const [selectedReq, setSelectedReq] = useState<AssistedShoppingItem | null>(
+    null
+  );
   const [modalMode, setModalMode] = useState<
     "QUOTE" | "PURCHASE" | "REJECT" | null
   >(null);
@@ -40,54 +34,38 @@ const AssistedShopping: React.FC = () => {
   const [quoteCost, setQuoteCost] = useState<number>(0);
   const [quoteShip, setQuoteShip] = useState<number>(0);
 
-  const [requests, setRequests] = useState<ShopReq[]>([
-    {
-      id: "REQ-2025-001",
-      client: "John Doe",
-      item: "MacBook Pro M4",
-      url: "https://apple.com/store...",
-      price: 0,
-      status: "REQUESTED",
-      date: "2025-03-01",
-    },
-    {
-      id: "REQ-2025-002",
-      client: "Alice Smith",
-      item: "Nike Air Jordans (Limited)",
-      url: "https://nike.com/jordan...",
-      price: 250,
-      status: "PAID",
-      date: "2025-02-28",
-    },
-    {
-      id: "REQ-2025-003",
-      client: "Bob Jones",
-      item: "Auto Part #554",
-      url: "https://ebay.com/item...",
-      price: 1500,
-      status: "QUOTED",
-      date: "2025-02-25",
-    },
-    {
-      id: "REQ-2025-005",
-      client: "Mike Ross",
-      item: "Gaming Chair",
-      url: "https://amazon.com...",
-      price: 450,
-      status: "PURCHASED",
-      date: "2025-02-18",
-      retailerRef: "112-9988-221",
-      carrier: "UPS",
-      trackingRef: "1Z998122",
-    },
-  ]);
+  const [requests, setRequests] = useState<AssistedShoppingItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const {
+    listAssistedShoppingRequests,
+    addAssistedShoppingQuote,
+    updateAssistedShopping,
+  } = useAssistedShopping();
+
+  const fetchRequests = async () => {
+    try {
+      setIsLoading(true);
+      const response = await listAssistedShoppingRequests();
+      setRequests(response.data.data);
+    } catch (err) {
+      setError("Failed to fetch shopping requests.");
+      showToast("Failed to fetch shopping requests.", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
 
   const triggerNav = (path: string) => {
     window.dispatchEvent(new CustomEvent("app-navigate", { detail: path }));
   };
 
   const handleOpenModal = (
-    req: ShopReq,
+    req: AssistedShoppingItem,
     mode: typeof modalMode,
     e: React.MouseEvent
   ) => {
@@ -96,63 +74,104 @@ const AssistedShopping: React.FC = () => {
     setModalMode(mode);
   };
 
-  const handleQuoteSubmit = (e: React.FormEvent) => {
+  const handleQuoteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setRequests((prev) =>
-      prev.map((r) =>
-        r.id === selectedReq?.id
-          ? {
-              ...r,
-              status: "QUOTED",
-              price: quoteCost + quoteShip + quoteCost * 0.1,
-            }
-          : r
-      )
-    );
-    showToast("Quotation sent to client", "success");
-    setModalMode(null);
+    if (!selectedReq) return;
+
+    try {
+      if (quoteCost > 0) {
+        await addAssistedShoppingQuote({
+          assisted_shopping_id: selectedReq.id,
+          item_name: selectedReq.name,
+          quantity: selectedReq.quantity,
+          unit_price: quoteCost,
+        });
+      }
+      if (quoteShip > 0) {
+        await addAssistedShoppingQuote({
+          assisted_shopping_id: selectedReq.id,
+          item_name: "Domestic Shipping",
+          quantity: 1,
+          unit_price: quoteShip,
+        });
+      }
+      const serviceFee = (quoteCost + quoteShip) * 0.1;
+      if (serviceFee > 0) {
+        await addAssistedShoppingQuote({
+          assisted_shopping_id: selectedReq.id,
+          item_name: "Service Fee (10%)",
+          quantity: 1,
+          unit_price: serviceFee,
+        });
+      }
+
+      const payload: UpdateAssistedShoppingPayload = {
+        name: selectedReq.name,
+        url: selectedReq.url,
+        quantity: selectedReq.quantity,
+        notes: selectedReq.notes,
+        status: "quoted",
+      };
+      await updateAssistedShopping(selectedReq.id, payload);
+
+      showToast("Quotation sent to client", "success");
+      setModalMode(null);
+      fetchRequests();
+    } catch (error) {
+      showToast("Failed to send quotation.", "error");
+    }
   };
 
-  const handlePurchaseSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handlePurchaseSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!selectedReq) return;
     const fd = new FormData(e.currentTarget);
-    setRequests((prev) =>
-      prev.map((r) =>
-        r.id === selectedReq?.id
-          ? {
-              ...r,
-              status: "PURCHASED",
-              retailerRef: fd.get("retailer_ref") as string,
-              carrier: fd.get("carrier") as string,
-              trackingRef: fd.get("tracking_ref") as string,
-            }
-          : r
-      )
-    );
-    showToast(
-      "Procurement details saved. Item marked as Purchased.",
-      "success"
-    );
-    setModalMode(null);
+    const payload: UpdateAssistedShoppingPayload = {
+      name: selectedReq.name,
+      url: selectedReq.url,
+      quantity: selectedReq.quantity,
+      notes: selectedReq.notes,
+      status: "purchased",
+      retailer_ref: fd.get("retailer_ref") as string,
+      carrier: fd.get("carrier") as string,
+      tracking_ref: fd.get("tracking_ref") as string,
+    };
+
+    try {
+      await updateAssistedShopping(selectedReq.id, payload);
+      showToast(
+        "Procurement details saved. Item marked as Purchased.",
+        "success"
+      );
+      setModalMode(null);
+      fetchRequests();
+    } catch (error) {
+      showToast("Failed to save procurement details.", "error");
+    }
   };
 
-  const columns: Column<ShopReq>[] = [
+  const columns: Column<AssistedShoppingItem>[] = [
     {
       header: "Request ID",
       accessor: (req) => (
         <span className="font-mono text-primary-600 font-bold hover:underline">
-          {req.id}
+          REQ-{req.id}
         </span>
       ),
       sortKey: "id",
       sortable: true,
     },
-    { header: "Client", accessor: "client", sortable: true },
+    {
+      header: "Client",
+      accessor: (req) => req.user.full_name,
+      sortKey: "user.full_name",
+      sortable: true,
+    },
     {
       header: "Item",
       accessor: (req) => (
         <div>
-          <div className="text-sm font-bold text-slate-800">{req.item}</div>
+          <div className="text-sm font-bold text-slate-800">{req.name}</div>
           <div className="flex gap-2 mt-1">
             <a
               href={req.url}
@@ -163,26 +182,32 @@ const AssistedShopping: React.FC = () => {
             >
               STORE <ExternalLink size={8} className="ml-1" />
             </a>
-            {req.retailerRef && (
+            {req.retailer_ref && (
               <span className="text-[10px] text-slate-400 font-mono">
-                Ref: {req.retailerRef}
+                Ref: {req.retailer_ref}
               </span>
             )}
           </div>
         </div>
       ),
-      sortKey: "item",
+      sortKey: "name",
       sortable: true,
     },
     {
       header: "Status",
-      accessor: (req) => <StatusBadge status={req.status} />,
+      accessor: (req) => <StatusBadge status={req.status.toUpperCase()} />,
       sortKey: "status",
       sortable: true,
     },
     {
       header: "Total",
-      accessor: (req) => (req.price > 0 ? `$${req.price.toFixed(2)}` : "-"),
+      accessor: (req) => {
+        const total = req.quotes?.reduce(
+          (acc, q) => acc + q.unit_price * q.quantity,
+          0
+        );
+        return total ? `$${total.toFixed(2)}` : "-";
+      },
       className: "text-right font-bold",
     },
     {
@@ -190,7 +215,7 @@ const AssistedShopping: React.FC = () => {
       className: "text-right",
       accessor: (req) => (
         <div className="flex justify-end gap-2">
-          {req.status === "REQUESTED" && (
+          {req.status === "requested" && (
             <button
               onClick={(e) => handleOpenModal(req, "QUOTE", e)}
               className="text-primary-600 font-bold text-[10px] bg-primary-50 px-2 py-1 rounded-md border border-primary-200 uppercase tracking-tighter"
@@ -198,7 +223,7 @@ const AssistedShopping: React.FC = () => {
               Issue Quote
             </button>
           )}
-          {req.status === "PAID" && (
+          {req.status === "paid" && (
             <button
               onClick={(e) => handleOpenModal(req, "PURCHASE", e)}
               className="text-green-700 font-bold text-[10px] bg-green-50 px-2 py-1 rounded-md border border-green-200 uppercase tracking-tighter"
@@ -228,13 +253,24 @@ const AssistedShopping: React.FC = () => {
         </div>
       </div>
 
-      <DataTable
-        data={requests}
-        columns={columns}
-        onRowClick={(req) => triggerNav(`/admin/shopping/${req.id}`)}
-        title="Procurement Queue"
-        searchPlaceholder="Search clients, items, or retailer refs..."
-      />
+      {isLoading ? (
+        <div className="flex flex-col justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <p className="mt-4 text-gray-600">Loading requests...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center text-red-500 bg-red-100 p-4 rounded">
+          {error}
+        </div>
+      ) : (
+        <DataTable
+          data={requests}
+          columns={columns}
+          onRowClick={(req) => triggerNav(`/admin/shopping/${req.id}`)}
+          title="Procurement Queue"
+          searchPlaceholder="Search clients, items, or retailer refs..."
+        />
+      )}
 
       <Modal
         isOpen={modalMode === "QUOTE"}
