@@ -210,11 +210,18 @@ const AssistedShopping: React.FC = () => {
     {
       header: "Total",
       accessor: (req) => {
-        const total = req.quotes?.reduce(
-          (acc, q) => acc + q.unit_price * q.quantity,
-          0
+        const serviceFee = req.quote_items?.find(
+          (acc, q) => acc.item_name === "Service Fee (10%)"
         );
-        return total ? `$${total.toFixed(2)}` : "-";
+        const shipping = req.quote_items?.find(
+          (acc, q) => acc.item_name === "Domestic Shipping"
+        );
+        const item = req.quote_items?.find(
+          (acc, q) => acc.item_name === req.name
+        );
+        const total =
+          item?.unit_price + shipping?.unit_price + serviceFee?.unit_price;
+        return total ? `$${total}` : "-";
       },
       className: "text-right font-bold",
     },

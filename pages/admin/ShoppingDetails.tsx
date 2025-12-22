@@ -112,9 +112,12 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
   }
 
   const quoteTotal =
-    request.quotes?.reduce((acc, q) => acc + q.unit_price * q.quantity, 0) || 0;
+    request.quote_items?.reduce(
+      (acc, q) => acc + q.unit_price * q.quantity,
+      0
+    ) || 0;
   const quoteSubtotal =
-    request.quotes
+    request.quote_items
       ?.filter((q) => q.item_name !== "Service Fee (10%)")
       .reduce((acc, q) => acc + q.unit_price * q.quantity, 0) || 0;
   const serviceFee = quoteTotal - quoteSubtotal;
