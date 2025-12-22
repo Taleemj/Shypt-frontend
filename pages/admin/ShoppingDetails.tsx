@@ -230,7 +230,7 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                   <DollarSign size={14} /> Financial Audit
                 </div>
                 <div className="space-y-3 text-sm">
-                  {request.quotes?.map((quote) => (
+                  {request.quote_items?.map((quote) => (
                     <div className="flex justify-between" key={quote.id}>
                       <span>
                         {quote.item_name} (x{quote.quantity})

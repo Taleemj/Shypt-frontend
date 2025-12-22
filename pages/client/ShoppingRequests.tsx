@@ -120,19 +120,12 @@ const ShoppingRequests: React.FC = () => {
     },
     {
       header: "Quote",
-      accessor: (req) => {
-        const serviceFee = req.quote_items?.find(
-          (acc, q) => acc.item_name === "Service Fee (10%)"
+      accessor: (r) => {
+        const quoteAmount = r.quote_items?.reduce(
+          (acc, q) => acc + q.unit_price * q.quantity,
+          0
         );
-        const shipping = req.quote_items?.find(
-          (acc, q) => acc.item_name === "Domestic Shipping"
-        );
-        const item = req.quote_items?.find(
-          (acc, q) => acc.item_name === req.name
-        );
-        const total =
-          item?.unit_price + shipping?.unit_price + serviceFee?.unit_price;
-        return total ? `$${total}` : "-";
+        return quoteAmount ? `$${quoteAmount.toFixed(2)}` : "-";
       },
       className: "text-right font-medium",
     },

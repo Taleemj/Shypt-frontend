@@ -317,7 +317,7 @@ const ClientShoppingDetailsWrapper = () => {
   const navigate = useNavigate();
   return (
     <ClientShoppingDetails
-      id={id || ""}
+      requestId={id || ""}
       onBack={() => navigate("/client/shopping")}
     />
   );

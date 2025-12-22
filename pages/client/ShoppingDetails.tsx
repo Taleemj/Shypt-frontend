@@ -30,6 +30,7 @@ const ClientShoppingDetails: React.FC<ClientShoppingDetailsProps> = ({
   const fetchRequestDetails = async () => {
     try {
       setIsLoading(true);
+      console.log("fetching request details", requestId);
       const id = parseInt(requestId.replace("REQ-", ""), 10);
       const response = await getAssistedShopping(id);
       setRequest(response.data);
@@ -42,6 +43,7 @@ const ClientShoppingDetails: React.FC<ClientShoppingDetailsProps> = ({
   };
 
   useEffect(() => {
+    console.log("requestId changed", requestId);
     if (requestId) {
       fetchRequestDetails();
     }
@@ -77,13 +79,16 @@ const ClientShoppingDetails: React.FC<ClientShoppingDetailsProps> = ({
   }
 
   const quoteTotal =
-    request.quotes?.reduce((acc, q) => acc + q.unit_price * q.quantity, 0) || 0;
+    request.quote_items?.reduce(
+      (acc, q) => acc + q.unit_price * q.quantity,
+      0
+    ) || 0;
   const serviceFee =
-    request.quotes?.find((q) => q.item_name.includes("Service Fee"))
+    request.quote_items?.find((q) => q.item_name.includes("Service Fee"))
       ?.unit_price || 0;
   const quoteSubtotal = quoteTotal - serviceFee;
   const domesticShipping =
-    request.quotes?.find((q) => q.item_name.includes("Domestic Shipping"))
+    request.quote_items?.find((q) => q.item_name.includes("Domestic Shipping"))
       ?.unit_price || 0;
   const itemCost = quoteSubtotal - domesticShipping;
 
@@ -128,7 +133,7 @@ const ClientShoppingDetails: React.FC<ClientShoppingDetailsProps> = ({
                     shortly.
                   </p>
                 </div>
-              ) : !request.quotes || request.quotes.length === 0 ? (
+              ) : !request.quote_items || request.quote_items.length === 0 ? (
                 <div className="text-center text-slate-500 py-8">
                   <ShoppingCart size={48} className="mx-auto mb-4 opacity-20" />
                   <p>Quotation is being generated.</p>
