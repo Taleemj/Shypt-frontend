@@ -1,8 +1,25 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Package, Truck, ShoppingBag, CreditCard, ChevronRight, Search, Plus, DollarSign, Globe } from 'lucide-react';
 import StatusBadge from '../../components/UI/StatusBadge';
+import { AuthUser } from '@/api/types/auth';
+import useAuth from '@/api/auth/useAuth';
 
 const ClientDashboard: React.FC = () => {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const { getUserProfile } = useAuth();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+        try {
+            const response = await getUserProfile();
+            setUser(response.data);
+        } catch (error) {
+            console.error("Failed to fetch user profile", error);
+        }
+    };
+    fetchUser();
+  }, []);
+
   // Navigation Helper
   const triggerNav = (path: string) => {
      window.dispatchEvent(new CustomEvent('app-navigate', { detail: path }));
@@ -14,15 +31,15 @@ const ClientDashboard: React.FC = () => {
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-8 text-white shadow-xl">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div>
-                <h1 className="text-3xl font-bold mb-2">Welcome back, John!</h1>
+                <h1 className="text-3xl font-bold mb-2">Welcome back, {user ? user.full_name.split(' ')[0] : '...'}!</h1>
                 <p className="text-slate-300 mb-6 max-w-xl">
                 You have 3 packages arriving this week. Your assisted shopping request for "MacBook Pro" has been quoted.
                 </p>
             </div>
             <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm border border-white/10">
                 <p className="text-slate-300 text-xs uppercase font-bold tracking-wider mb-1">My US Address</p>
-                <p className="font-mono text-sm">John Doe (CL-8821)</p>
-                <p className="text-sm">144-25 183rd St, Unit CL-8821</p>
+                <p className="font-mono text-sm">{user ? `${user.full_name} (CL-${user.id})` : '...'}</p>
+                <p className="text-sm">144-25 183rd St, Unit CL-{user ? user.id : '...'}</p>
                 <p className="text-sm">Springfield Gardens, NY 11413</p>
             </div>
         </div>
