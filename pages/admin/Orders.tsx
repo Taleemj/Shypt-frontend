@@ -18,16 +18,16 @@ import { DataTable, Column } from "../../components/UI/DataTable";
 import useOrders from "../../api/orders/useOrders";
 import { Order, PlaceOrderPayload } from "../../api/types/orders";
 import useWareHouse from "../../api/warehouse/useWareHouse";
-import { WareHouse } from "../../api/types/warehouse";
+import { WareHouseLocation } from "../../api/types/warehouse";
 
 const Orders: React.FC = () => {
   const { showToast } = useToast();
   const { getOrders, placeOrder, updateOrder, deleteOrder, updateOrderStatus } =
     useOrders();
-  const { fetchWareHouses } = useWareHouse();
+  const { fetchWareHouseLocations } = useWareHouse();
 
   const [orders, setOrders] = useState<Order[]>([]);
-  const [warehouses, setWarehouses] = useState<WareHouse[]>([]);
+  const [warehouses, setWarehouses] = useState<WareHouseLocation[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal State
@@ -59,7 +59,7 @@ const Orders: React.FC = () => {
     fetchOrders();
     const loadWarehouses = async () => {
       try {
-        const response = await fetchWareHouses();
+        const response = await fetchWareHouseLocations();
         setWarehouses(response.data);
       } catch (error) {
         showToast("Failed to fetch warehouses", "error");
