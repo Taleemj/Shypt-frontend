@@ -28,16 +28,16 @@ import usePackage from "../../api/package/usePackage";
 import useWareHouse from "../../api/warehouse/useWareHouse";
 import { Order, PlaceOrderPayload } from "../../api/types/orders";
 import { Package } from "../../api/types/package";
-import { WareHouse } from "../../api/types/warehouse";
+import { WareHouseLocation } from "../../api/types/warehouse";
 
 const MyOrders: React.FC = () => {
   const { showToast } = useToast();
   const { getOrders, placeOrder } = useOrders();
   const { addPackageToOrder } = usePackage();
-  const { fetchWareHouses } = useWareHouse();
+  const { fetchWareHouseLocations } = useWareHouse();
 
   const [orders, setOrders] = useState<Order[]>([]);
-  const [warehouses, setWarehouses] = useState<WareHouse[]>([]);
+  const [warehouses, setWarehouses] = useState<WareHouseLocation[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal state
@@ -59,7 +59,7 @@ const MyOrders: React.FC = () => {
     try {
       const [ordersResponse, warehousesResponse] = await Promise.all([
         getOrders(),
-        fetchWareHouses(),
+        fetchWareHouseLocations(),
       ]);
       setOrders(ordersResponse.data.data);
       setWarehouses(warehousesResponse.data);
