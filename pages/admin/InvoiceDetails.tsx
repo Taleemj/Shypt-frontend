@@ -42,8 +42,7 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
         return;
       }
       const inv = await showInvoice(numericId);
-      // @ts-ignore
-      setInvoice(inv.data);
+      setInvoice(inv);
     } catch (error) {
       showToast("Failed to fetch invoice details", "error");
       console.error(error);
@@ -58,8 +57,10 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
 
   const subtotal = useMemo(
     () =>
-      invoice?.line_items.reduce((acc, item) => acc + Number(item.total), 0) ||
-      0,
+      invoice?.line_items.reduce(
+        (acc, item) => acc + Number(item.unit_price),
+        0
+      ) || 0,
     [invoice]
   );
   const tax = 0.0;
@@ -256,7 +257,7 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
                       {item.description}
                     </td>
                     <td className="px-4 py-3 text-right font-medium text-slate-900 print:px-0">
-                      ${Number(item.total).toFixed(2)}
+                      ${Number(item.unit_price).toFixed(2)}
                     </td>
                   </tr>
                 ))}
