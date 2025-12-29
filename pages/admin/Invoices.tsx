@@ -22,24 +22,29 @@ interface InvoiceRowData {
 const Invoices: React.FC = () => {
   const { showToast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [usersList, setUsersList] = useState<AuthUser[]>([]);
-  const { listInvoices } = useInvoice();
+  const { listInvoices, createInvoice, addItemToInvoice } = useInvoice();
   const { fetchAllUsers } = useAuth();
   const [invoices, setInvoices] = useState<InvoiceRowData[]>([]);
 
+  const fetchInvoices = async () => {
+    const invoicesResponse = await listInvoices();
+    const mappedInvoices = invoicesResponse.data.map((inv) => ({
+      id: inv.invoice_number,
+      client: inv.user?.full_name || "N/A",
+      type: inv.type,
+      amount: inv.line_items.reduce((acc, item) => acc + item.unit_price, 0),
+      status: inv.status,
+      date: new Date(inv.created_at).toLocaleDateString(),
+      original_id: inv.id,
+    }));
+    setInvoices(mappedInvoices);
+  };
+
   useEffect(() => {
     (async () => {
-      const invoicesResponse = await listInvoices();
-      const mappedInvoices = invoicesResponse.data.map((inv) => ({
-        id: inv.invoice_number,
-        client: inv.user?.full_name || "N/A",
-        type: inv.type,
-        amount: inv.line_items.reduce((acc, item) => acc + item.unit_price, 0),
-        status: inv.status,
-        date: new Date(inv.created_at).toLocaleDateString(),
-        original_id: inv.id,
-      }));
-      setInvoices(mappedInvoices);
+      await fetchInvoices();
       const users = await fetchAllUsers();
       setUsersList(users.data);
     })();
@@ -50,28 +55,53 @@ const Invoices: React.FC = () => {
     window.dispatchEvent(new CustomEvent("app-navigate", { detail: path }));
   };
 
-  const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const client_id = formData.get("client") as string;
-    const client = usersList.find(
-      (user) => user.id === parseInt(client_id)
-    )?.full_name;
-    const newInv: InvoiceRowData = {
-      id: `INV-2025-${100 + invoices.length}`,
-      client: client || "N/A",
+
+    const payload = {
+      user_id: parseInt(formData.get("client") as string),
       type: formData.get("type") as string,
-      amount: Number(formData.get("amount")),
-      status: "PENDING",
-      date: new Date().toISOString().split("T")[0],
-      original_id: Math.random(),
+      amount: parseFloat(formData.get("amount") as string),
+      notes: formData.get("notes") as string,
     };
-    setInvoices([newInv, ...invoices]);
-    showToast("Invoice Generated and Sent to Client", "success");
-    setIsCreateOpen(false);
+
+    if (!payload.user_id || !payload.type || !payload.amount) {
+      showToast("Please fill all required fields.", "error");
+      return;
+    }
+
+    setIsCreating(true);
+    console.log(payload);
+    try {
+      const invoiceResponse = await createInvoice({
+        user_id: payload.user_id,
+        type: payload.type,
+        due_date: new Date().toISOString().split("T")[0],
+      });
+
+      // @ts-ignore
+      const newInvoice = invoiceResponse.data;
+
+      await addItemToInvoice({
+        invoice_id: newInvoice.id,
+        description: payload.notes || payload.type,
+        quantity: 1,
+        unit_price: payload.amount,
+      });
+
+      await fetchInvoices();
+
+      showToast("Invoice Generated and Sent to Client", "success");
+      setIsCreateOpen(false);
+    } catch (error) {
+      console.error("Failed to create invoice", error);
+      showToast("Failed to create invoice. Please try again.", "error");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
-  // --- COLUMN DEFINITIONS ---
   const columns: Column<InvoiceRowData>[] = [
     {
       header: "Invoice #",
@@ -226,9 +256,9 @@ const Invoices: React.FC = () => {
               className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900"
             >
               <option value="FREIGHT">Freight Charges</option>
-              <option value="SHOPPING">Assisted Shopping</option>
-              <option value="STORAGE_FEE">Storage Fee</option>
-              <option value="CUSTOMS_DUTY">Customs Duty</option>
+              <option value="OTHER">Assisted Shopping</option>
+              <option value="STORAGE">Storage Fee</option>
+              <option value="CUSTOMS">Customs Duty</option>
             </select>
           </div>
           <div>
@@ -264,9 +294,10 @@ const Invoices: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-slate-800 text-white rounded hover:bg-slate-700"
+              disabled={isCreating}
+              className="px-4 py-2 bg-slate-800 text-white rounded hover:bg-slate-700 disabled:bg-slate-500"
             >
-              Send Invoice
+              {isCreating ? "Sending..." : "Send Invoice"}
             </button>
           </div>
         </form>
