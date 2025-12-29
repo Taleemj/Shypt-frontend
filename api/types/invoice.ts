@@ -19,7 +19,7 @@ export interface Payment {
   method: string;
   transaction_reference: string | null;
   gateway_reference: string | null;
-  status: "completed" | "pending" | "failed" | null;
+  status: "COMPLETED" | "PENDING" | "FAILED" | null;
   paid_at: string;
   created_at: string;
   updated_at: string;
@@ -63,6 +63,10 @@ export interface PaginatedInvoicesResponse {
     to: number;
     total: number;
   };
+  total: number;
+  per_page: number;
+  from: number;
+  last_page: number;
 }
 
 export interface CreateInvoicePayload {

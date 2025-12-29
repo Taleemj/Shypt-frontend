@@ -15,7 +15,7 @@ import {
 const useInvoice = () => {
   const listInvoices = async (): Promise<PaginatedInvoicesResponse> => {
     const { data } = await client.get(`/api/billing/invoices`);
-    return data;
+    return data.data;
   };
 
   const createInvoice = async (
