@@ -72,7 +72,11 @@ export interface GetUserProfileResponse extends AuthResponse {
 export interface UpdateUserPayload {
   phone: string;
   full_name: string;
-  tin: string;
-  passport: string;
+  tin?: string;
+  passport?: string;
   address: string;
+  street: string;
+  city: string;
+  region: string;
+  country: string;
 }
