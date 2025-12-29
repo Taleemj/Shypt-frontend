@@ -10,6 +10,7 @@ import {
   VerifyOtpPayload,
   RegisterPayload,
   RegisterResponse,
+  AuthUser,
 } from "@/api/types/auth";
 
 const useAuth = () => {
@@ -61,6 +62,15 @@ const useAuth = () => {
     const { data } = await client.put("/api/auth/update_user", payload);
     return data;
   };
+
+  const fetchAllUsers = async (): Promise<{
+    data: AuthUser[];
+    message: string;
+    status: string;
+  }> => {
+    const { data } = await client.get("/api/auth/all_profiles");
+    return data;
+  };
   return {
     logout,
     login,
@@ -70,6 +80,7 @@ const useAuth = () => {
     verifyOtp,
     register,
     changePassword,
+    fetchAllUsers,
   };
 };
 
