@@ -38,6 +38,7 @@ export interface GetCargoDeclarationResponse extends CargoApiResponse {
 }
 
 export interface CreateCargoDeclarationPayload {
+  user_id?: number;
   warehouse_location_id?: number;
   internal_curier?: string;
   tracking_number?: string;
