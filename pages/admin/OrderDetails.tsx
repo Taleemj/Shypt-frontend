@@ -16,14 +16,14 @@ import {
 } from "../../api/types/cargo";
 import Modal from "../../components/UI/Modal";
 
-interface DeclarationDetailsProps {
+interface AdminOrderDetailsProps {
   declarationId: string;
   onBack: () => void;
 }
 
 const DECLARATION_STATUSES = ["pending", "received", "declined"];
 
-const DeclarationDetails: React.FC<DeclarationDetailsProps> = ({
+const AdminOrderDetails: React.FC<AdminOrderDetailsProps> = ({
   declarationId,
   onBack,
 }) => {
@@ -49,6 +49,7 @@ const DeclarationDetails: React.FC<DeclarationDetailsProps> = ({
   };
 
   useEffect(() => {
+    console.log("trwdfbgnhj", declarationId);
     if (declarationId) {
       fetchDetails();
     }
@@ -179,7 +180,9 @@ const DeclarationDetails: React.FC<DeclarationDetailsProps> = ({
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-slate-500 font-medium">Origin:</span>
+                <span className="text-slate-500 font-medium">
+                  Warehouse Location:
+                </span>
                 <span className="text-slate-900">
                   {declaration.location.name}
                 </span>
@@ -277,4 +280,4 @@ const DeclarationDetails: React.FC<DeclarationDetailsProps> = ({
   );
 };
 
-export default DeclarationDetails;
+export default AdminOrderDetails;

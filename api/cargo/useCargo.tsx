@@ -15,14 +15,14 @@ import {
 const useCargo = () => {
   const listCargoDeclarations =
     async (): Promise<ListCargoDeclarationsResponse> => {
-      const { data } = await client.get("/api/cargo-declarations");
+      const { data } = await client.get("/api/cargo_decleration");
       return data;
     };
 
   const createCargoDeclaration = async (
     payload: CreateCargoDeclarationPayload
   ): Promise<CreateCargoDeclarationResponse> => {
-    const { data } = await client.post("/api/cargo-declarations", payload);
+    const { data } = await client.post("/api/cargo_decleration", payload);
     return data;
   };
 
@@ -30,7 +30,7 @@ const useCargo = () => {
     declaration_id: number | string
   ): Promise<GetCargoDeclarationResponse> => {
     const { data } = await client.get(
-      `/api/cargo-declarations/${declaration_id}`
+      `/api/cargo_decleration/${declaration_id}`
     );
     return data;
   };
@@ -40,7 +40,7 @@ const useCargo = () => {
     payload: UpdateCargoDeclarationPayload
   ): Promise<UpdateCargoDeclarationResponse> => {
     const { data } = await client.put(
-      `/api/cargo-declarations/${declaration_id}`,
+      `/api/cargo_decleration/${declaration_id}`,
       payload
     );
     return data;
@@ -50,7 +50,7 @@ const useCargo = () => {
     declaration_id: number | string
   ): Promise<DeleteCargoDeclarationResponse> => {
     const { data } = await client.delete(
-      `/api/cargo-declarations/${declaration_id}`
+      `/api/cargo_declaration/${declaration_id}`
     );
     return data;
   };
@@ -60,7 +60,7 @@ const useCargo = () => {
     payload: FormData
   ): Promise<UploadFilesResponse> => {
     const { data } = await client.post(
-      `/api/cargo-declarations/${declaration_id}/upload-files`,
+      `/api/cargo_files/${declaration_id}`,
       payload
     );
     return data;
@@ -71,7 +71,7 @@ const useCargo = () => {
     payload: DeleteFilePayload
   ): Promise<DeleteFileResponse> => {
     const { data } = await client.post(
-      `/api/cargo-declarations/${declaration_id}/delete-file`,
+      `/api/cargo_files/${declaration_id}`,
       payload
     );
     return data;

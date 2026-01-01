@@ -216,7 +216,7 @@ const OrderDetailsWrapper = () => {
   const navigate = useNavigate();
   return (
     <OrderDetails
-      orderId={orderId || ""}
+      declarationId={orderId || ""}
       onBack={() => navigate("/admin/orders")}
     />
   );

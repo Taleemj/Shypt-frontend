@@ -15,6 +15,7 @@ import {
   Scale,
   Truck,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import StatusBadge from "../../components/UI/StatusBadge";
 import Modal from "../../components/UI/Modal";
@@ -46,6 +47,7 @@ const Orders: React.FC = () => {
   const [warehouses, setWarehouses] = useState<WareHouseLocation[]>([]);
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Modal State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -139,7 +141,7 @@ const Orders: React.FC = () => {
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    setLoading(true);
+    setIsSubmitting(true);
 
     try {
       if (formMode === "ADD") {
@@ -206,7 +208,7 @@ const Orders: React.FC = () => {
         "error"
       );
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -398,9 +400,16 @@ const Orders: React.FC = () => {
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+          disabled={isSubmitting}
+          className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 flex items-center justify-center disabled:bg-primary-400"
         >
-          Save Changes
+          {isSubmitting ? (
+            <>
+              <Loader2 className="animate-spin h-4 w-4 mr-2" /> Saving...
+            </>
+          ) : (
+            "Save Changes"
+          )}
         </button>
       </div>
     </form>
@@ -663,14 +672,20 @@ const Orders: React.FC = () => {
         </button>
         <button
           type="submit"
-          disabled={!complianceAgreed}
-          className={`px-10 py-3 rounded-xl text-sm font-bold transition-all shadow-xl ${
+          disabled={!complianceAgreed || isSubmitting}
+          className={`px-10 py-3 rounded-xl text-sm font-bold transition-all shadow-xl flex justify-center items-center ${
             complianceAgreed
               ? "bg-primary-600 text-white hover:bg-primary-700 shadow-primary-200"
               : "bg-slate-200 text-slate-400 cursor-not-allowed"
           }`}
         >
-          Submit Cargo Declaration
+          {isSubmitting ? (
+            <>
+              <Loader2 className="animate-spin h-5 w-5 mr-3" /> Submitting...
+            </>
+          ) : (
+            "Submit Cargo Declaration"
+          )}
         </button>
       </div>
     </form>

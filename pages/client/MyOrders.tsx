@@ -11,6 +11,7 @@ import {
   Scale,
   Truck,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { DataTable, Column } from "../../components/UI/DataTable";
 import Modal from "../../components/UI/Modal";
@@ -34,6 +35,7 @@ const MyOrders: React.FC = () => {
   >([]);
   const [warehouses, setWarehouses] = useState<WareHouseLocation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,6 +45,10 @@ const MyOrders: React.FC = () => {
   const [declaredValue, setDeclaredValue] = useState<string>("");
   const [estWeight, setEstWeight] = useState<string>("");
   const [complianceAgreed, setComplianceAgreed] = useState(false);
+
+  const triggerNav = (path: string) => {
+    window.dispatchEvent(new CustomEvent("app-navigate", { detail: path }));
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -112,7 +118,7 @@ const MyOrders: React.FC = () => {
     };
 
     try {
-      setLoading(true);
+      setIsSubmitting(true);
       await createCargoDeclaration(payload);
       showToast(
         "Cargo Declared! We will notify you once it reaches " +
@@ -125,7 +131,7 @@ const MyOrders: React.FC = () => {
     } catch (error) {
       showToast("Failed to create cargo declaration.", "error");
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -158,7 +164,7 @@ const MyOrders: React.FC = () => {
       sortable: true,
     },
     {
-      header: "Origin",
+      header: "Destination",
       accessor: (cd) => (
         <span className="font-bold text-slate-500">
           {cd.location?.name || "N/A"}
@@ -213,8 +219,10 @@ const MyOrders: React.FC = () => {
       <DataTable
         data={cargoDeclarations}
         columns={columns}
-        // @ts-ignore
         loading={loading}
+        onRowClick={(declaration) =>
+          triggerNav(`/client/orders/${declaration.id}`)
+        }
         title="My Declaration History"
         searchPlaceholder="Search by tracking number or description..."
       />
@@ -457,14 +465,21 @@ const MyOrders: React.FC = () => {
             </button>
             <button
               type="submit"
-              disabled={!complianceAgreed}
-              className={`px-10 py-3 rounded-xl text-sm font-bold transition-all shadow-xl ${
+              disabled={!complianceAgreed || isSubmitting}
+              className={`px-10 py-3 rounded-xl text-sm font-bold transition-all shadow-xl flex items-center justify-center ${
                 complianceAgreed
                   ? "bg-primary-600 text-white hover:bg-primary-700 shadow-primary-200"
                   : "bg-slate-200 text-slate-400 cursor-not-allowed"
               }`}
             >
-              Submit Cargo Declaration
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Cargo Declaration"
+              )}
             </button>
           </div>
         </form>

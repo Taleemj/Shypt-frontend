@@ -5,77 +5,60 @@ import {
   Plane,
   MapPin,
   CheckCircle,
+  XCircle,
   FileText,
 } from "lucide-react";
 import StatusBadge from "../../components/UI/StatusBadge";
 import { useToast } from "../../context/ToastContext";
-import useOrders from "../../api/orders/useOrders";
-import { Order } from "../../api/types/orders";
+import useCargo from "../../api/cargo/useCargo";
+import { CargoDeclaration } from "../../api/types/cargo";
 
 interface OrderDetailsProps {
   id: string;
   onBack: () => void;
 }
 
-const ORDER_STATUS_FLOW = [
-  "PENDING",
-  "RECEIVED",
-  "CONSOLIDATED",
-  "DISPATCHED",
-  "IN_TRANSIT",
-  "ARRIVED",
-  "READY_FOR_RELEASE",
-  "RELEASED",
-  "DELIVERED",
-];
-
-const CLIENT_TIMELINE_MAP: { [key: string]: string } = {
-  PENDING: "Pre-Alert Created",
-  RECEIVED: "Received at Origin Warehouse",
-  CONSOLIDATED: "Consolidated for Shipment",
-  DISPATCHED: "Departed from Origin",
-  IN_TRANSIT: "In Transit to Destination",
-  ARRIVED: "Arrived at Destination",
-  READY_FOR_RELEASE: "Customs Cleared & Ready",
-  RELEASED: "Released from Warehouse",
-  DELIVERED: "Delivered",
-};
-
-const VISUAL_STEPS = [
-  { label: "Created", icon: FileText, matchStatus: ["PENDING"] },
+const STATUS_FLOW = [
+  { status: "PENDING", label: "Pre-Alert Created", icon: FileText },
   {
-    label: "Received",
+    status: "RECEIVED",
+    label: "Received at Origin Warehouse",
     icon: PackageIcon,
-    matchStatus: ["RECEIVED", "CONSOLIDATED"],
   },
   {
-    label: "In Transit",
-    icon: Plane,
-    matchStatus: ["DISPATCHED", "IN_TRANSIT"],
+    status: "CONSOLIDATED",
+    label: "Consolidated for Shipment",
+    icon: PackageIcon,
   },
-  { label: "Arrived", icon: MapPin, matchStatus: ["ARRIVED"] },
+  { status: "DISPATCHED", label: "Departed from Origin", icon: Plane },
+  { status: "IN_TRANSIT", label: "In Transit to Destination", icon: Plane },
+  { status: "ARRIVED", label: "Arrived at Destination", icon: MapPin },
   {
-    label: "Ready",
+    status: "READY_FOR_RELEASE",
+    label: "Customs Cleared & Ready",
     icon: CheckCircle,
-    matchStatus: ["READY_FOR_RELEASE", "RELEASED", "DELIVERED"],
   },
+  { status: "RELEASED", label: "Released from Warehouse", icon: CheckCircle },
+  { status: "DELIVERED", label: "Delivered", icon: CheckCircle },
+  // Special terminal status
+  { status: "DECLINED", label: "Declined", icon: XCircle, terminal: true },
 ];
 
 const ClientOrderDetails: React.FC<OrderDetailsProps> = ({ id, onBack }) => {
   const { showToast } = useToast();
-  const { getOrder } = useOrders();
+  const { getCargoDeclaration } = useCargo();
 
-  const [order, setOrder] = useState<Order | null>(null);
+  const [declaration, setDeclaration] = useState<CargoDeclaration | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
       setLoading(true);
       try {
-        const response = await getOrder(parseInt(id, 10));
-        setOrder(response.data);
+        const response = await getCargoDeclaration(id);
+        setDeclaration(response.data);
       } catch (err) {
-        showToast("Failed to fetch order details.", "error");
+        showToast("Failed to fetch declaration details.", "error");
         console.error(err);
       } finally {
         setLoading(false);
@@ -87,13 +70,20 @@ const ClientOrderDetails: React.FC<OrderDetailsProps> = ({ id, onBack }) => {
   }, [id]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="text-center p-8">Loading declaration details...</div>
+    );
   }
 
-  if (!order) {
+  if (!declaration) {
     return (
       <div className="text-center p-8">
-        <h3 className="text-xl font-semibold">Order Not Found</h3>
+        <h3 className="text-xl font-semibold text-red-600">
+          Declaration Not Found
+        </h3>
+        <p className="text-slate-500">
+          The declaration might have been deleted or an error occurred.
+        </p>
         <button
           onClick={onBack}
           className="mt-4 px-4 py-2 bg-primary-600 text-white rounded"
@@ -104,48 +94,37 @@ const ClientOrderDetails: React.FC<OrderDetailsProps> = ({ id, onBack }) => {
     );
   }
 
-  const currentStatusIndex = ORDER_STATUS_FLOW.indexOf(order.status);
-  const formattedTimeline = ORDER_STATUS_FLOW.map((status, index) => {
-    const historyEvent = order.status_history.find((h) => h.status === status);
-    return {
-      status: CLIENT_TIMELINE_MAP[status] || status,
-      date: historyEvent
-        ? new Date(historyEvent.created_at).toLocaleString()
-        : index === currentStatusIndex
-        ? new Date(order.created_at).toLocaleString()
-        : "-",
-      loc: historyEvent ? historyEvent.location : "N/A",
-      done: index <= currentStatusIndex,
-      current: index === currentStatusIndex,
-    };
-  });
+  const currentStatus = declaration.status.toUpperCase();
+  const currentStatusIndex = STATUS_FLOW.findIndex(
+    (s) => s.status === currentStatus
+  );
 
-  const getProgressPercentage = () => {
-    const currentVisualStepIndex = VISUAL_STEPS.findIndex((step) =>
-      step.matchStatus.includes(order.status)
-    );
-    if (currentVisualStepIndex === -1) return 0;
-    // 4 intervals for 5 steps.
-    return (currentVisualStepIndex / (VISUAL_STEPS.length - 1)) * 100;
-  };
+  const statusFlowToDisplay = STATUS_FLOW.filter((s) => {
+    if (currentStatus === "DECLINED") {
+      // If declined, only show the first step and the declined step
+      return s.status === "PENDING" || s.status === "DECLINED";
+    }
+    // Otherwise, show all non-terminal statuses
+    return !s.terminal;
+  });
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-4 bg-white p-4 rounded-lg shadow-sm border">
+      <div className="flex items-center space-x-4 bg-white p-4 rounded-lg shadow-sm border border-slate-200">
         <button
           onClick={onBack}
-          className="p-2 hover:bg-slate-100 rounded-full transition"
+          className="p-2 hover:bg-slate-100 rounded-full transition text-slate-600"
         >
           <ArrowLeft size={20} />
         </button>
         <div>
           <h2 className="text-xl font-bold text-slate-800">
-            Order {order.tracking_number}
+            Declaration #{declaration.id}
           </h2>
           <div className="flex items-center gap-2 mt-1">
-            <StatusBadge status={order.status} />
+            <StatusBadge status={declaration.status} />
             <span className="text-sm text-slate-500">
-              {order.packages.map((p) => p.contents).join(", ")}
+              Tracking: {declaration.tracking_number || "N/A"}
             </span>
           </div>
         </div>
@@ -153,111 +132,132 @@ const ClientOrderDetails: React.FC<OrderDetailsProps> = ({ id, onBack }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            {/* Horizontal Visual Tracker */}
-            <div className="relative pt-4 pb-4">
-              <div className="absolute top-5 left-0 w-full px-9">
-                <div className="h-1 bg-slate-100 w-full rounded-full relative">
-                  <div
-                    className="absolute top-0 left-0 h-full bg-blue-600 rounded-full transition-all duration-1000"
-                    style={{ width: `${getProgressPercentage()}%` }}
-                  ></div>
-                </div>
-              </div>
-              <div className="relative z-10 flex justify-between">
-                {VISUAL_STEPS.map((step, index) => {
-                  const stepIndex = VISUAL_STEPS.findIndex((s) =>
-                    s.matchStatus.includes(order.status)
-                  );
-                  const isCompleted = index <= stepIndex;
-                  return (
-                    <div key={index} className="flex flex-col items-center">
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                          isCompleted
-                            ? "bg-blue-600 border-blue-600 text-white"
-                            : "bg-white border-slate-300 text-slate-300"
-                        }`}
-                      >
-                        <step.icon size={16} />
-                      </div>
-                      <span
-                        className={`text-xs font-bold mt-3 ${
-                          isCompleted ? "text-slate-800" : "text-slate-400"
-                        }`}
-                      >
-                        {step.label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200">
+              <h3 className="font-bold text-slate-800">Cargo Details</h3>
             </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-            <div className="px-6 py-4 border-b">
-              <h3 className="font-bold text-slate-800">Package Details</h3>
-            </div>
-            <div className="p-6">
-              {order.packages && order.packages.length > 0 ? (
-                <table className="w-full text-sm">
-                  <thead className="border-b">
-                    <tr>
-                      <th className="text-left p-2">Contents</th>
-                      <th className="text-right p-2">Weight (kg)</th>
-                      <th className="text-right p-2">Dimensions (cm)</th>
-                      <th className="text-right p-2">Declared Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {order.packages.map((pkg) => (
-                      <tr key={pkg.id} className="border-b">
-                        <td className="p-2">{pkg.contents}</td>
-                        <td className="text-right p-2">
-                          {Number(pkg.weight).toFixed(2)}
-                        </td>
-                        <td className="text-right p-2">{`${pkg.length}x${pkg.width}x${pkg.height}`}</td>
-                        <td className="text-right p-2">
-                          Ugx
-                          {Number(
-                            Number(pkg.declared_value).toFixed(2)
-                          ).toLocaleString()}
-                        </td>
-                      </tr>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+              <div className="flex flex-col">
+                <span className="text-slate-500 font-medium">Description:</span>
+                <span className="text-slate-900 font-semibold">
+                  {declaration.cargo_details}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-slate-500 font-medium">
+                  Internal Courier:
+                </span>
+                <span className="text-slate-900">
+                  {declaration.internal_curier || "N/A"}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-slate-500 font-medium">
+                  Tracking Number:
+                </span>
+                <span className="font-mono text-slate-900">
+                  {declaration.tracking_number || "N/A"}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-slate-500 font-medium">Destination:</span>
+                <span className="text-slate-900">
+                  {declaration.location.name}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-slate-500 font-medium">
+                  Declared Value:
+                </span>
+                <span className="font-mono text-slate-900">
+                  $ {Number(declaration.value).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-slate-500 font-medium">Weight:</span>
+                <span className="text-slate-900">
+                  {declaration.weight
+                    ? `${Number(declaration.weight).toFixed(2)} kg`
+                    : "N/A"}
+                </span>
+              </div>
+              <div className="flex flex-col col-span-full">
+                <span className="text-slate-500 font-medium">
+                  Attached Files:
+                </span>
+                {declaration.files && declaration.files.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {declaration.files.map((file, index) => (
+                      <a
+                        key={index}
+                        href={`/api/files/${file}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary-600 hover:underline text-xs"
+                      >
+                        {file.split("/").pop()}
+                      </a>
                     ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p>No packages found in this order.</p>
-              )}
+                  </div>
+                ) : (
+                  <span className="text-slate-400 italic">
+                    No files attached.
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border p-6 h-fit">
-          <h3 className="font-bold text-slate-800 mb-6">Tracking Timeline</h3>
-          <div className="relative border-l-2 border-slate-100 ml-3 space-y-8">
-            {formattedTimeline.map((event, i) => (
-              <div key={i} className="relative pl-8">
-                <div
-                  className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-2 ${
-                    event.done
-                      ? "bg-green-500 border-green-500"
-                      : "bg-white border-slate-300"
-                  }`}
-                ></div>
-                <div style={{ opacity: event.done ? 1 : 0.5 }}>
-                  <p className="text-sm font-bold text-slate-800">
-                    {event.status}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-0.5">{event.loc}</p>
-                  <p className="text-xs text-slate-400 mt-0.5 font-mono">
-                    {event.date}
-                  </p>
+          <h3 className="font-bold text-slate-800 mb-6">
+            Declaration Timeline
+          </h3>
+          <div className="space-y-6">
+            {statusFlowToDisplay.map((event, i) => {
+              const eventStatusIndex = STATUS_FLOW.findIndex(
+                (s) => s.status === event.status
+              );
+              const isDone = currentStatusIndex >= eventStatusIndex;
+              const isCurrent = currentStatusIndex === eventStatusIndex;
+
+              let iconColor = "bg-slate-200 text-slate-500";
+              let textColor = "text-slate-500";
+
+              if (isCurrent) {
+                textColor = "text-slate-800";
+                if (currentStatus === "DECLINED") {
+                  iconColor = "bg-red-100 text-red-600";
+                } else {
+                  iconColor = "bg-primary-100 text-primary-600";
+                }
+              } else if (isDone) {
+                textColor = "text-slate-800";
+                iconColor = "bg-green-100 text-green-600";
+              }
+
+              return (
+                <div key={i} className="flex items-start">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center mr-4 transition-all ${iconColor}`}
+                  >
+                    <event.icon size={20} />
+                  </div>
+                  <div className="pt-1">
+                    <p className={`font-bold transition-all ${textColor}`}>
+                      {event.label}
+                    </p>
+                    {isCurrent && (
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {`Updated on ${new Date(
+                          declaration.updated_at
+                        ).toLocaleDateString()}`}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
