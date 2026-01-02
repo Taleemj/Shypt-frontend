@@ -230,7 +230,7 @@ const Orders: React.FC = () => {
           {/* @ts-ignore */}
           <div className="font-medium text-slate-900">
             {/* @ts-ignore */}
-            {declaration.user.name}
+            {declaration.user.full_name}
           </div>
           <div className="text-xs text-slate-500">
             {new Date(declaration.created_at).toLocaleDateString()}
