@@ -212,6 +212,9 @@ const ClientShoppingDetails: React.FC<ClientShoppingDetailsProps> = ({
                 {request.quantity}
               </strong>
             </div>
+            <span className="text-xs text-slate-400">
+              • Created {new Date(request.created_at).toLocaleString()}
+            </span>
             <a
               href={request.url}
               target="_blank"

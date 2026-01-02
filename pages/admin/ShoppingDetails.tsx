@@ -181,7 +181,7 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
             <div className="flex items-center gap-2 mt-1">
               <StatusBadge status={request.status.toUpperCase()} />
               <span className="text-xs text-slate-400">
-                • Created {new Date(request.created_at).toLocaleDateString()}
+                • Created {new Date(request.created_at).toLocaleString()}
               </span>
               <a
                 href={request.url}
