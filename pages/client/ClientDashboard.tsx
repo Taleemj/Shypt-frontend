@@ -13,10 +13,17 @@ import {
 import StatusBadge from "../../components/UI/StatusBadge";
 import { AuthUser } from "@/api/types/auth";
 import useAuth from "@/api/auth/useAuth";
+import useCargo from "@/api/cargo/useCargo";
+import { useToast } from "@/context/ToastContext";
+import { CargoDeclaration } from "@/api/types/cargo";
 
 const ClientDashboard: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const { getUserProfile } = useAuth();
+  const [packages, setPackages] = useState<CargoDeclaration[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { listCargoDeclarations } = useCargo();
+  const { showToast } = useToast();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -27,7 +34,20 @@ const ClientDashboard: React.FC = () => {
         console.error("Failed to fetch user profile", error);
       }
     };
+    const fetchPackages = async () => {
+      setLoading(true);
+      try {
+        const response = await listCargoDeclarations();
+        setPackages(response.data.slice(0, 3));
+      } catch (error) {
+        showToast("Failed to fetch packages", "error");
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchUser();
+    fetchPackages();
   }, []);
 
   // Navigation Helper
@@ -45,8 +65,7 @@ const ClientDashboard: React.FC = () => {
               Welcome back, {user ? user.full_name.split(" ")[0] : "..."}!
             </h1>
             <p className="text-slate-300 mb-6 max-w-xl">
-              You have 3 packages arriving this week. Your assisted shopping
-              request for "MacBook Pro" has been quoted.
+              You have {packages.length} packages being tracked.
             </p>
           </div>
           <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm border border-white/10">
@@ -145,51 +164,42 @@ const ClientDashboard: React.FC = () => {
             </div>
           </div>
           <div className="divide-y divide-slate-100">
-            {[
-              {
-                id: "HWB-8832",
-                desc: "Amazon Shipment",
-                status: "ARRIVED",
-                date: "Today",
-              },
-              {
-                id: "HWB-8831",
-                desc: "Nike Shoes",
-                status: "IN_TRANSIT",
-                date: "Est. 2 days",
-              },
-              {
-                id: "HWB-8810",
-                desc: "Car Parts",
-                status: "CONSOLIDATED",
-                date: "Est. 5 days",
-              },
-            ].map((pkg, i) => (
-              <div
-                key={i}
-                className="p-4 hover:bg-slate-50 transition flex items-center justify-between cursor-pointer group"
-                onClick={() => triggerNav(`/client/orders`)}
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="bg-slate-100 p-3 rounded-lg border border-slate-200">
-                    <Package className="text-slate-500" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-slate-800 group-hover:text-primary-600 transition">
-                      {pkg.desc}
-                    </h4>
-                    <p className="text-xs text-slate-500">
-                      {pkg.id} • {pkg.date}
-                    </p>
-                    2
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <StatusBadge status={pkg.status} />
-                  <ChevronRight className="text-slate-300" size={20} />
-                </div>
+            {loading ? (
+              <div className="p-8 text-center text-slate-500">
+                Loading packages...
               </div>
-            ))}
+            ) : packages.length > 0 ? (
+              packages.map((pkg, i) => (
+                <div
+                  key={i}
+                  className="p-4 hover:bg-slate-50 transition flex items-center justify-between cursor-pointer group"
+                  onClick={() => triggerNav(`/client/orders/${pkg.id}`)}
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-slate-100 p-3 rounded-lg border border-slate-200">
+                      <Package className="text-slate-500" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-slate-800 group-hover:text-primary-600 transition">
+                        {pkg.cargo_details}
+                      </h4>
+                      <p className="text-xs text-slate-500">
+                        {pkg.id} •{" "}
+                        {new Date(pkg.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <StatusBadge status={pkg.status.toUpperCase()} />
+                    <ChevronRight className="text-slate-300" size={20} />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-slate-500">
+                You have no packages being tracked currently.
+              </div>
+            )}
           </div>
           <div className="p-4 border-t border-slate-100 text-center bg-slate-50">
             <button

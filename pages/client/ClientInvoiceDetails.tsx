@@ -106,7 +106,7 @@ const ClientInvoiceDetails: React.FC<InvoiceDetailsProps> = ({
               #{invoice.invoice_number}
             </p>
             <div className="mt-4">
-              <StatusBadge status={invoice.status} />
+              <StatusBadge status={invoice.status.toUpperCase()} />
             </div>
           </div>
           <div className="text-right">
@@ -255,7 +255,7 @@ const ClientInvoiceDetails: React.FC<InvoiceDetailsProps> = ({
               Invoice {invoice.invoice_number}
             </h2>
             <div className="mt-1 flex items-center gap-2">
-              <StatusBadge status={invoice.status} />
+              <StatusBadge status={invoice.status.toUpperCase()} />
               <span className="text-sm text-slate-500">
                 • Due {new Date(invoice.due_date).toLocaleDateString()}
               </span>

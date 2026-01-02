@@ -121,7 +121,7 @@ const ClientInvoices: React.FC = () => {
     },
     {
       header: "Status",
-      accessor: (i) => <StatusBadge status={i.status} />,
+      accessor: (i) => <StatusBadge status={i.status.toUpperCase()} />,
       sortKey: "status",
       sortable: true,
     },

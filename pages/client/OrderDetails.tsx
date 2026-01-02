@@ -148,7 +148,7 @@ const ClientOrderDetails: React.FC<OrderDetailsProps> = ({ id, onBack }) => {
             Declaration #{declaration.id}
           </h2>
           <div className="flex items-center gap-2 mt-1">
-            <StatusBadge status={declaration.status} />
+            <StatusBadge status={declaration.status.toUpperCase()} />
             <span className="text-sm text-slate-500">
               {declaration.cargo_details}
             </span>

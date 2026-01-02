@@ -28,7 +28,11 @@ import {
 const MyOrders: React.FC = () => {
   const { showToast } = useToast();
   const { fetchWareHouseLocations } = useWareHouse();
-  const { listCargoDeclarations, createCargoDeclaration, uploadCargoDeclarationFiles } = useCargo();
+  const {
+    listCargoDeclarations,
+    createCargoDeclaration,
+    uploadCargoDeclarationFiles,
+  } = useCargo();
 
   const [cargoDeclarations, setCargoDeclarations] = useState<
     CargoDeclaration[]
@@ -131,7 +135,10 @@ const MyOrders: React.FC = () => {
           await uploadCargoDeclarationFiles(response.data.id, uploadFormData);
           showToast("Invoice uploaded successfully.", "success");
         } catch (uploadError) {
-          showToast("Declaration was created, but failed to upload the invoice.", "warning");
+          showToast(
+            "Declaration was created, but failed to upload the invoice.",
+            "warning"
+          );
         }
       }
 
@@ -186,7 +193,7 @@ const MyOrders: React.FC = () => {
     },
     {
       header: "Status",
-      accessor: (cd) => <StatusBadge status={cd.status} />,
+      accessor: (cd) => <StatusBadge status={cd.status.toUpperCase()} />,
       sortKey: "status",
       sortable: true,
     },
@@ -428,9 +435,15 @@ const MyOrders: React.FC = () => {
                     Upload Vendor Invoice
                   </span>
                   <span className="text-[9px] text-slate-500 mt-1">
-                    {selectedFiles && selectedFiles.length > 0 ? selectedFiles[0].name : 'PDF or JPG only'}
+                    {selectedFiles && selectedFiles.length > 0
+                      ? selectedFiles[0].name
+                      : "PDF or JPG only"}
                   </span>
-                  <input type="file" className="hidden" onChange={(e) => setSelectedFiles(e.target.files)} />
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={(e) => setSelectedFiles(e.target.files)}
+                  />
                 </label>
 
                 <div className="flex-1 flex items-center">
