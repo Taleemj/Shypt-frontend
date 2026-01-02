@@ -8,7 +8,8 @@ export interface CargoApiResponse {
 export interface Location {
   id: number;
   name: string;
-  //... other fields can be added here
+  code: string;
+  //...
 }
 
 export interface CargoDeclaration {
@@ -22,7 +23,7 @@ export interface CargoDeclaration {
   cargo_details: string;
   value: string | number;
   weight: string | number;
-  status: 'pending' | 'received' | 'declined' | string;
+  status: "pending" | "received" | "declined" | string;
   files: string[];
   user_id: number;
   user: AuthUser;
@@ -57,7 +58,7 @@ export interface UpdateCargoDeclarationPayload {
   cargo_details?: string;
   value?: number;
   weight?: number;
-  status?: 'pending' | 'received' | 'declined' | string;
+  status?: "pending" | "received" | "declined" | string;
 }
 
 export interface UpdateCargoDeclarationResponse extends CargoApiResponse {

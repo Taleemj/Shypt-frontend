@@ -1,19 +1,19 @@
 import React from "react";
 import { Box, Camera, CheckCircle } from "lucide-react";
 import StatusBadge from "../UI/StatusBadge";
-import { HWB, PendingOrder } from "./types";
+import { HWB } from "./types";
 import { OrderStatus } from "../../types";
+import { CargoDeclaration } from "@/api/types/cargo";
+import { AuthUser } from "@/api/types/auth";
 
 interface ReceiptFlowProps {
   currentLocation: string;
   getLocName: (code: string) => string;
   setIsScannerOpen: (open: boolean) => void;
   handleReceipt: (e: React.FormEvent) => void;
-  selectedOrderId: string;
-  handleOrderSelect: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  currentPendingOrders: PendingOrder[];
-  receiptClient: string;
-  setReceiptClient: (value: string) => void;
+  selectedDeclarationId: string;
+  handleDeclarationSelect: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  pendingDeclarations: CargoDeclaration[];
   receiptDesc: string;
   setReceiptDesc: (value: string) => void;
   receiptWeight: string;
@@ -21,6 +21,9 @@ interface ReceiptFlowProps {
   receiptValue: string;
   setReceiptValue: (value: string) => void;
   inventory: HWB[];
+  users: AuthUser[];
+  selectedUserId: string;
+  setSelectedUserId: (value: string) => void;
 }
 
 const ReceiptFlow: React.FC<ReceiptFlowProps> = ({
@@ -28,11 +31,9 @@ const ReceiptFlow: React.FC<ReceiptFlowProps> = ({
   getLocName,
   setIsScannerOpen,
   handleReceipt,
-  selectedOrderId,
-  handleOrderSelect,
-  currentPendingOrders,
-  receiptClient,
-  setReceiptClient,
+  selectedDeclarationId,
+  handleDeclarationSelect,
+  pendingDeclarations,
   receiptDesc,
   setReceiptDesc,
   receiptWeight,
@@ -40,6 +41,9 @@ const ReceiptFlow: React.FC<ReceiptFlowProps> = ({
   receiptValue,
   setReceiptValue,
   inventory,
+  users,
+  selectedUserId,
+  setSelectedUserId,
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -59,17 +63,17 @@ const ReceiptFlow: React.FC<ReceiptFlowProps> = ({
         <form onSubmit={handleReceipt} className="space-y-4">
           <div className="bg-blue-50 p-4 rounded border border-blue-100 mb-4">
             <label className="block text-sm font-bold text-blue-900 mb-2">
-              Link to Pending Order (Pre-Alert)
+              Link to Declaration (Pre-Alert)
             </label>
             <select
-              value={selectedOrderId}
-              onChange={handleOrderSelect}
+              value={selectedDeclarationId}
+              onChange={handleDeclarationSelect}
               className="w-full border border-blue-200 rounded p-2 bg-white text-slate-900"
             >
               <option value="">-- Manual Entry / No Pre-Alert --</option>
-              {currentPendingOrders.map((order) => (
-                <option key={order.id} value={order.id}>
-                  {order.id} - {order.client} ({order.desc})
+              {pendingDeclarations.map((dec) => (
+                <option key={dec.id} value={dec.id}>
+                  {dec.id} - {dec.user.full_name} ({dec.cargo_details})
                 </option>
               ))}
             </select>
@@ -79,14 +83,20 @@ const ReceiptFlow: React.FC<ReceiptFlowProps> = ({
             <label className="block text-sm font-medium text-slate-700">
               Client Name
             </label>
-            <input
+            <select
               required
-              type="text"
-              value={receiptClient}
-              onChange={(e) => setReceiptClient(e.target.value)}
+              value={selectedUserId}
+              onChange={(e) => setSelectedUserId(e.target.value)}
               className="w-full border border-slate-300 rounded mt-1 bg-white text-slate-900 p-2"
-              placeholder="Client Name or ID"
-            />
+              disabled={!!selectedDeclarationId}
+            >
+              <option value="">-- Select a Client --</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.full_name} (CL-{user.id})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -100,6 +110,7 @@ const ReceiptFlow: React.FC<ReceiptFlowProps> = ({
               onChange={(e) => setReceiptDesc(e.target.value)}
               className="w-full border border-slate-300 rounded mt-1 bg-white text-slate-900 p-2"
               placeholder="e.g. 5x Cartons of Shoes"
+              disabled={!!selectedDeclarationId}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -115,6 +126,7 @@ const ReceiptFlow: React.FC<ReceiptFlowProps> = ({
                 onChange={(e) => setReceiptWeight(e.target.value)}
                 className="w-full border border-slate-300 rounded mt-1 bg-white text-slate-900 p-2"
                 placeholder="0.00"
+                disabled={!!selectedDeclarationId}
               />
             </div>
             <div>
@@ -129,6 +141,7 @@ const ReceiptFlow: React.FC<ReceiptFlowProps> = ({
                 onChange={(e) => setReceiptValue(e.target.value)}
                 className="w-full border border-slate-300 rounded mt-1 bg-white text-slate-900 p-2"
                 placeholder="0.00"
+                disabled={!!selectedDeclarationId}
               />
             </div>
           </div>
@@ -138,8 +151,8 @@ const ReceiptFlow: React.FC<ReceiptFlowProps> = ({
               className="w-full bg-primary-600 text-white py-2 px-4 rounded hover:bg-primary-700 flex justify-center items-center font-medium"
             >
               <CheckCircle size={18} className="mr-2" />
-              {selectedOrderId
-                ? "Verify & Receive Order"
+              {selectedDeclarationId
+                ? "Verify & Receive Package"
                 : "Generate HWB & Receive"}
             </button>
           </div>

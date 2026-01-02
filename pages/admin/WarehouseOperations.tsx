@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Globe,
   Plane,
@@ -21,47 +21,83 @@ import { sendStatusNotification } from "../../utils/notificationService";
 import { OrderStatus, TaxStatus } from "../../types";
 import useOrders from "../../api/orders/useOrders";
 import { Order } from "../../api/types/orders";
-import { useMemo } from "react";
 import useWareHouse from "../../api/warehouse/useWareHouse";
-import { WareHouse } from "../../api/types/warehouse";
+import { WareHouseLocation } from "../../api/types/warehouse";
 import useConsolidation from "../../api/consolidation/useConsolidation";
-import { HWB, MAWB, PendingOrder } from "../../components/warehouse/types";
+import { HWB, MAWB } from "../../components/warehouse/types";
 import ReceiptFlow from "../../components/warehouse/ReceiptFlow";
 import ConsolidateFlow from "../../components/warehouse/ConsolidateFlow";
 import DeconsolidateFlow from "../../components/warehouse/DeconsolidateFlow";
+import useCargo from "@/api/cargo/useCargo";
+import { CargoDeclaration } from "@/api/types/cargo";
+import useAuth from "@/api/auth/useAuth";
+import { AuthUser } from "@/api/types/auth";
 
 const WarehouseOperations: React.FC = () => {
   const { showToast } = useToast();
   const { getOrders } = useOrders();
-  const { fetchWareHouses } = useWareHouse();
+  const { fetchWareHouseLocations } = useWareHouse();
   const { createConsolidationBatch } = useConsolidation();
+  const { listCargoDeclarations } = useCargo();
+  const { fetchAllUsers } = useAuth();
+
   const [orders, setOrders] = useState<Order[]>([]);
-  const [warehouses, setWarehouses] = useState<WareHouse[]>([]);
+  const [warehouses, setWarehouses] = useState<WareHouseLocation[]>([]);
+  const [declarations, setDeclarations] = useState<CargoDeclaration[]>([]);
+  const [users, setUsers] = useState<AuthUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "RECEIPT" | "CONSOLIDATE" | "DECONSOLIDATE"
   >("RECEIPT");
-  const [currentLocation, setCurrentLocation] = useState();
+  const [currentLocation, setCurrentLocation] = useState<string>("");
 
   // Modal State
   const [isConsolidateOpen, setIsConsolidateOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
 
-  React.useEffect(() => {
-    const loadWarehouses = async () => {
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setLoading(true);
       try {
-        const res = await fetchWareHouses();
-        // @ts-ignore
-        setCurrentLocation(`${res.data[0].country} (${res.data[0].code})`);
-        setWarehouses(res.data);
+        const [warehousesRes, declarationsRes, usersRes] =
+          await Promise.allSettled([
+            fetchWareHouseLocations(),
+            listCargoDeclarations(),
+            fetchAllUsers(),
+          ]);
+
+        if (
+          warehousesRes.status === "fulfilled" &&
+          warehousesRes.value.data &&
+          warehousesRes.value.data.length > 0
+        ) {
+          setCurrentLocation(warehousesRes.value.data[0].code);
+          setWarehouses(warehousesRes.value.data);
+        } else {
+          showToast("Failed to load warehouses", "error");
+        }
+
+        if (declarationsRes.status === "fulfilled") {
+          setDeclarations(declarationsRes.value.data);
+        } else {
+          showToast("Failed to load cargo declarations", "error");
+        }
+
+        if (usersRes.status === "fulfilled") {
+          setUsers(usersRes.value.data);
+        } else {
+          showToast("Failed to load users", "error");
+        }
       } catch (error) {
-        showToast("Failed to load warehouses", "error");
+        showToast("Failed to load initial data", "error");
+      } finally {
+        setLoading(false);
       }
     };
-    loadWarehouses();
+    loadInitialData();
   }, [showToast]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchOrders = async () => {
       setLoading(true);
       try {
@@ -86,31 +122,6 @@ const WarehouseOperations: React.FC = () => {
   };
 
   // --- STATE WITH SAMPLE DATA ---
-
-  // 0. Pending Orders (Pre-alerts from Clients)
-  const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([
-    {
-      id: "ORD-001",
-      client: "Acme Corp",
-      desc: "Electronics Components",
-      weight: 45,
-      origin: "CN",
-    },
-    {
-      id: "ORD-003",
-      client: "Global Tech",
-      desc: "Server Racks",
-      weight: 250,
-      origin: "US",
-    },
-    {
-      id: "ORD-005",
-      client: "AutoParts Inc",
-      desc: "Brake Pads",
-      weight: 800,
-      origin: "CN",
-    },
-  ]);
 
   // 1. Inventory (Pending Consolidation)
   const [inventory, setInventory] = useState<HWB[]>([
@@ -204,11 +215,12 @@ const WarehouseOperations: React.FC = () => {
   const [selectedHwbs, setSelectedHwbs] = useState<string[]>([]);
 
   // Receipt Form State
-  const [selectedOrderId, setSelectedOrderId] = useState<string>("");
+  const [selectedDeclarationId, setSelectedDeclarationId] =
+    useState<string>("");
   const [receiptWeight, setReceiptWeight] = useState("");
   const [receiptDesc, setReceiptDesc] = useState("");
   const [receiptValue, setReceiptValue] = useState("");
-  const [receiptClient, setReceiptClient] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
 
   // Deconsolidation State
   const [activeDeconMawb, setActiveDeconMawb] = useState<MAWB | null>(null);
@@ -231,46 +243,59 @@ const WarehouseOperations: React.FC = () => {
   };
 
   // 0. Order Selection Handler
-  const handleOrderSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const orderId = e.target.value;
-    setSelectedOrderId(orderId);
-    fillFormFromOrder(orderId);
+  const handleDeclarationSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const declarationId = e.target.value;
+    setSelectedDeclarationId(declarationId);
+    fillFormFromDeclaration(declarationId);
   };
 
-  const fillFormFromOrder = (orderId: string) => {
-    if (orderId) {
-      const order = pendingOrders.find((o) => o.id === orderId);
-      if (order) {
-        setReceiptDesc(order.desc);
-        setReceiptWeight(order.weight.toString());
-        setReceiptClient(order.client);
+  const fillFormFromDeclaration = (declarationId: string) => {
+    if (declarationId) {
+      const declaration = declarations.find(
+        (d) => d.id === parseInt(declarationId)
+      );
+      if (declaration) {
+        setReceiptDesc(declaration.cargo_details);
+        setReceiptWeight(declaration.weight?.toString() || "");
+        setReceiptValue(declaration.value.toString());
+        // @ts-ignore
+        setSelectedUserId(declaration.user.id.toString());
       }
     } else {
       setReceiptDesc("");
       setReceiptWeight("");
-      setReceiptClient("");
+      setReceiptValue("");
+      setSelectedUserId("");
     }
   };
 
   // 0.5 Barcode Scanning Logic
   const handleScanCode = (code: string) => {
     setIsScannerOpen(false);
-    const existingOrder = pendingOrders.find((o) => o.id === code);
+    // Assuming barcode maps to declaration ID or tracking number
+    const declaration = declarations.find(
+      (d) => d.id.toString() === code || d.tracking_number === code
+    );
 
-    if (existingOrder) {
-      if (existingOrder.origin !== currentLocation) {
+    if (declaration) {
+      if (declaration.location?.code !== currentLocation) {
         showToast(
-          `Warning: Order ${code} is expected in ${existingOrder.origin}, not ${currentLocation}`,
+          `Warning: Declaration ${declaration.id} expected in ${
+            declaration.location?.code || "N/A"
+          }, not ${currentLocation}`,
           "warning"
         );
       }
-      setSelectedOrderId(code);
-      fillFormFromOrder(code);
-      showToast(`Order ${code} scanned successfully`, "success");
+      setSelectedDeclarationId(declaration.id.toString());
+      fillFormFromDeclaration(declaration.id.toString());
+      showToast(
+        `Declaration ${declaration.id} scanned successfully`,
+        "success"
+      );
     } else {
-      setSelectedOrderId("");
+      setSelectedDeclarationId("");
       setReceiptDesc(`Scanned Item: ${code}`);
-      setReceiptClient("Unknown - Walk In");
+      setSelectedUserId("");
       setReceiptWeight("");
       showToast(`Unknown barcode ${code}. Please fill details.`, "info");
     }
@@ -279,35 +304,46 @@ const WarehouseOperations: React.FC = () => {
   // 1. Receipt Handler
   const handleReceipt = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const selectedUser = users.find((u) => u.id === parseInt(selectedUserId));
+
     const newHwb: HWB = {
       id: `HWB-${Math.floor(Math.random() * 10000)}`,
       weight: Number(receiptWeight),
       desc: receiptDesc || "General Cargo",
-      client: receiptClient || "Walk-in / Unknown",
+      client: selectedUser?.full_name || "Walk-in / Unknown",
       value: Number(receiptValue) || 50,
       status: OrderStatus.RECEIVED,
       origin: currentLocation,
-      orderRef: selectedOrderId || undefined,
+      orderRef: selectedDeclarationId || undefined,
     };
 
-    setInventory([...inventory, newHwb]);
-    if (selectedOrderId) {
-      setPendingOrders((prev) => prev.filter((o) => o.id !== selectedOrderId));
+    setInventory([newHwb, ...inventory]);
+    if (selectedDeclarationId) {
+      // Since API is not ready, we will just show a toast.
+      // In a real scenario, you'd call an API to update the declaration status.
+      showToast(
+        `Declaration ${selectedDeclarationId} marked as received.`,
+        "info"
+      );
+      setDeclarations((prev) =>
+        prev.filter((d) => d.id !== parseInt(selectedDeclarationId))
+      );
     }
 
-    sendStatusNotification({
-      recipientEmail: "client@example.com",
-      recipientPhone: "555-0101",
-      orderId: newHwb.id,
-      newStatus: OrderStatus.RECEIVED,
-    });
+    // sendStatusNotification({
+    //   recipientEmail: "client@example.com",
+    //   recipientPhone: "555-0101",
+    //   orderId: newHwb.id,
+    //   newStatus: OrderStatus.RECEIVED,
+    // });
 
     showToast(`Package ${newHwb.id} Received & Logged`, "success");
     setReceiptWeight("");
     setReceiptDesc("");
     setReceiptValue("");
-    setReceiptClient("");
-    setSelectedOrderId("");
+    setSelectedUserId("");
+    setSelectedDeclarationId("");
   };
 
   // 2. Consolidation Logic
@@ -390,6 +426,7 @@ const WarehouseOperations: React.FC = () => {
           return p;
         });
         const allPackagesConsolidated = newPackages.every(
+          // @ts-ignore
           (p) => p.status === OrderStatus.CONSOLIDATED
         );
         if (allPackagesConsolidated) {
@@ -522,9 +559,11 @@ const WarehouseOperations: React.FC = () => {
   const currentInventory = inventory.filter(
     (i) => i.status === OrderStatus.RECEIVED && i.origin === currentLocation
   );
-  const currentPendingOrders = pendingOrders.filter(
-    (o) => o.origin === currentLocation
+
+  const pendingDeclarations = declarations.filter(
+    (d) => d.status === "pending" && d.location?.code === currentLocation
   );
+
   const outboundManifests = mawbs.filter((m) => m.origin === currentLocation);
 
   return (
@@ -536,7 +575,7 @@ const WarehouseOperations: React.FC = () => {
           <p className="text-slate-400 text-xs">
             Managing inventory at{" "}
             <span className="text-primary-300 font-mono">
-              {getLocName(currentLocation)}
+              {currentLocation ? getLocName(currentLocation) : "..."}
             </span>
           </p>
         </div>
@@ -545,10 +584,9 @@ const WarehouseOperations: React.FC = () => {
           <select
             value={currentLocation}
             onChange={(e) => {
-              // @ts-ignore
               setCurrentLocation(e.target.value);
               setSelectedHwbs([]);
-              setSelectedOrderId("");
+              setSelectedDeclarationId("");
             }}
             className="bg-slate-700 border-slate-600 text-white text-sm rounded p-2 focus:ring-primary-500"
           >
@@ -556,8 +594,8 @@ const WarehouseOperations: React.FC = () => {
               <option>Loading...</option>
             ) : (
               warehouses.map((w) => (
-                <option key={w.id} value={`${w.country} (${w.code})`}>
-                  {w.name} ({w.code}) - Zone: {w.zone}
+                <option key={w.id} value={w.code}>
+                  {w.name} ({w.code})
                 </option>
               ))
             )}
@@ -611,18 +649,19 @@ const WarehouseOperations: React.FC = () => {
             getLocName={getLocName}
             setIsScannerOpen={setIsScannerOpen}
             handleReceipt={handleReceipt}
-            selectedOrderId={selectedOrderId}
-            handleOrderSelect={handleOrderSelect}
-            currentPendingOrders={currentPendingOrders}
-            receiptClient={receiptClient}
-            setReceiptClient={setReceiptClient}
-            receiptDesc={receiptDesc}
-            setReceiptDesc={setReceiptDesc}
+            selectedDeclarationId={selectedDeclarationId}
+            handleDeclarationSelect={handleDeclarationSelect}
+            pendingDeclarations={pendingDeclarations}
             receiptWeight={receiptWeight}
             setReceiptWeight={setReceiptWeight}
             receiptValue={receiptValue}
             setReceiptValue={setReceiptValue}
             inventory={inventory}
+            users={users}
+            selectedUserId={selectedUserId}
+            setSelectedUserId={setSelectedUserId}
+            receiptDesc={receiptDesc}
+            setReceiptDesc={setReceiptDesc}
           />
         )}
 
@@ -632,6 +671,7 @@ const WarehouseOperations: React.FC = () => {
             handleBulkConsolidateAction={handleBulkConsolidateAction}
             handleOpenConsolidate={handleOpenConsolidate}
             loading={loading}
+            // @ts-ignore
             packagesForConsolidation={packagesForConsolidation}
             currentLocation={currentLocation}
             setSelectedHwbs={setSelectedHwbs}
@@ -776,18 +816,19 @@ const WarehouseOperations: React.FC = () => {
               Tap a code to simulate scan:
             </p>
             <div className="grid grid-cols-2 gap-3">
-              {currentPendingOrders.slice(0, 4).map((order) => (
+              {pendingDeclarations.slice(0, 4).map((declaration) => (
                 <button
-                  key={order.id}
-                  onClick={() => handleScanCode(order.id)}
+                  key={declaration.id}
+                  onClick={() => handleScanCode(declaration.id.toString())}
                   className="p-3 border border-slate-300 rounded hover:bg-blue-50 hover:border-blue-400 transition flex flex-col items-center"
                 >
                   <ScanLine size={20} className="mb-1 text-slate-500" />
                   <span className="font-mono text-xs font-bold">
-                    {order.id}
+                    {declaration.id}
                   </span>
                   <span className="text-[10px] text-slate-500 truncate w-full text-center">
-                    {order.client}
+                    {/* @ts-ignore */}
+                    {declaration.user.full_name}
                   </span>
                 </button>
               ))}
