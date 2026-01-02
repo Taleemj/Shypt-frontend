@@ -18,7 +18,7 @@ export interface Package {
   id: number;
 }
 
-export interface AddPackageToOrderResponse extends Package {
+export interface AddPackageToOrderResponse {
   status: string;
   message: string;
   data: Package;

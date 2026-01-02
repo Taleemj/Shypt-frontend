@@ -32,14 +32,16 @@ import useCargo from "@/api/cargo/useCargo";
 import { CargoDeclaration } from "@/api/types/cargo";
 import useAuth from "@/api/auth/useAuth";
 import { AuthUser } from "@/api/types/auth";
+import usePackage from "@/api/package/usePackage"; // Added for package operations
 
 const WarehouseOperations: React.FC = () => {
   const { showToast } = useToast();
   const { getOrders } = useOrders();
   const { fetchWareHouseLocations } = useWareHouse();
   const { createConsolidationBatch } = useConsolidation();
-  const { listCargoDeclarations } = useCargo();
+  const { listCargoDeclarations, createCargoDeclaration } = useCargo(); // Added createCargoDeclaration
   const { fetchAllUsers } = useAuth();
+  const { addPackageToOrder } = usePackage(); // Added addPackageToOrder
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [warehouses, setWarehouses] = useState<WareHouseLocation[]>([]);
@@ -302,48 +304,107 @@ const WarehouseOperations: React.FC = () => {
   };
 
   // 1. Receipt Handler
-  const handleReceipt = (e: React.FormEvent) => {
+  const handleReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const selectedUser = users.find((u) => u.id === parseInt(selectedUserId));
+    setLoading(true);
+    let currentDeclarationId = parseInt(selectedDeclarationId);
+    let packageHwbNumber = `HWB-${Math.floor(Math.random() * 1000000)}`;
 
-    const newHwb: HWB = {
-      id: `HWB-${Math.floor(Math.random() * 10000)}`,
-      weight: Number(receiptWeight),
-      desc: receiptDesc || "General Cargo",
-      client: selectedUser?.full_name || "Walk-in / Unknown",
-      value: Number(receiptValue) || 50,
-      status: OrderStatus.RECEIVED,
-      origin: currentLocation,
-      orderRef: selectedDeclarationId || undefined,
-    };
+    try {
+      const selectedUser = users.find((u) => u.id === parseInt(selectedUserId));
 
-    setInventory([newHwb, ...inventory]);
-    if (selectedDeclarationId) {
-      // Since API is not ready, we will just show a toast.
-      // In a real scenario, you'd call an API to update the declaration status.
+      if (!selectedDeclarationId) {
+        // No declaration selected, create a new cargo declaration first
+        if (!selectedUserId) {
+          showToast("Please select a client to create a new package.", "error");
+          setLoading(false);
+          return;
+        }
+
+        const newCargoDeclaration = await createCargoDeclaration({
+          user_id: parseInt(selectedUserId),
+          cargo_details: receiptDesc || "General Cargo",
+          weight: parseFloat(receiptWeight) || 0,
+          value: parseFloat(receiptValue) || 0,
+          // @ts-ignore
+          origin_country: currentLocation,
+          // Assuming a default destination for newly created declarations,
+          // or derive from currentLocation if applicable
+          destination_country: currentLocation === "UG" ? "UG" : "UG", // Example: set to UG if not already UG
+          status: "pending", // Initially pending, will become 'received' after package added
+        });
+        currentDeclarationId = newCargoDeclaration.data.id;
+        showToast(
+          `New Declaration ${currentDeclarationId} created.`,
+          "success"
+        );
+      }
+
+      // Now add the package to the (existing or newly created) order/declaration
+      const packageData = {
+        order_id: currentDeclarationId,
+        hwb_number: packageHwbNumber, // Generate HWB number
+        contents: receiptDesc || "General Cargo",
+        declared_value: receiptValue,
+        weight: parseFloat(receiptWeight),
+        location_id: currentLocation,
+        is_fragile: false, // Default or add UI control
+        is_hazardous: false, // Default or add UI control
+        is_damaged: false, // Default or add UI control
+      };
+
+      const addPackageResponse = await addPackageToOrder(packageData);
+      const newPackage = addPackageResponse.data;
+
+      setInventory((prev) => [
+        {
+          id: newPackage.hwb_number,
+          weight: newPackage.weight,
+          desc: newPackage.contents,
+          client: selectedUser?.full_name || "Walk-in / Unknown", // Need to get client name from somewhere
+          value: parseFloat(newPackage.declared_value),
+          status: OrderStatus.RECEIVED,
+          origin: newPackage.location_id,
+          orderRef: newPackage.order_id.toString(),
+        },
+        ...prev,
+      ]);
+
+      if (selectedDeclarationId) {
+        // If an existing declaration was used, update its status or remove from pending list
+        setDeclarations((prev) =>
+          prev.filter((d) => d.id !== parseInt(selectedDeclarationId))
+        );
+      } else {
+        // If a new declaration was created, add it to the list of declarations but mark as received
+        setDeclarations((prev) =>
+          prev.map((d) =>
+            d.id === currentDeclarationId ? { ...d, status: "received" } : d
+          )
+        );
+      }
+
       showToast(
-        `Declaration ${selectedDeclarationId} marked as received.`,
-        "info"
+        `Package ${newPackage.hwb_number} Received & Logged`,
+        "success"
       );
-      setDeclarations((prev) =>
-        prev.filter((d) => d.id !== parseInt(selectedDeclarationId))
+
+      // Clear form
+      setReceiptWeight("");
+      setReceiptDesc("");
+      setReceiptValue("");
+      setSelectedUserId("");
+      setSelectedDeclarationId("");
+    } catch (error: any) {
+      console.error("Failed to receive package:", error);
+      showToast(
+        `Failed to receive package: ${error.message || "Unknown error"}`,
+        "error"
       );
+    } finally {
+      setLoading(false);
     }
-
-    // sendStatusNotification({
-    //   recipientEmail: "client@example.com",
-    //   recipientPhone: "555-0101",
-    //   orderId: newHwb.id,
-    //   newStatus: OrderStatus.RECEIVED,
-    // });
-
-    showToast(`Package ${newHwb.id} Received & Logged`, "success");
-    setReceiptWeight("");
-    setReceiptDesc("");
-    setReceiptValue("");
-    setSelectedUserId("");
-    setSelectedDeclarationId("");
   };
 
   // 2. Consolidation Logic
@@ -662,6 +723,7 @@ const WarehouseOperations: React.FC = () => {
             setSelectedUserId={setSelectedUserId}
             receiptDesc={receiptDesc}
             setReceiptDesc={setReceiptDesc}
+            isLoading={loading}
           />
         )}
 
