@@ -122,7 +122,7 @@ const WarehouseOperations: React.FC = () => {
         }
         if (consolidationsRes.status === "fulfilled") {
           // @ts-ignore
-          setConsolidations(consolidationsRes.value.data || []);
+          setConsolidations(consolidationsRes.value || []);
         } else {
           showToast("Could not fetch consolidations.", "error");
           console.error(consolidationsRes.reason);
@@ -138,7 +138,7 @@ const WarehouseOperations: React.FC = () => {
     if (activeTab === "CONSOLIDATE" || activeTab === "RECEIPT") {
       fetchAllData();
     }
-  }, [activeTab, showToast]);
+  }, [activeTab]);
 
   // Navigation Helper
   const triggerNav = (path: string) => {
@@ -387,25 +387,36 @@ const WarehouseOperations: React.FC = () => {
     const transportMode = formData.get("transport_mode") as string;
     const departureDate = formData.get("departure_date") as string;
 
-    const selectedItems = packagesForConsolidation?.filter((i) =>
-      selectedPackages.includes(i.packageId)
+    const selectedWarehouse = warehouses.find(
+      (w) => w.code === currentLocation
     );
-    const totalWeight = selectedItems.reduce(
-      (sum, item) => sum + Number(item.weight),
-      0
-    );
-    const packageIds = selectedItems.map((p) => p.packageId);
+    if (!selectedWarehouse) {
+      showToast("No warehouse selected or found.", "error");
+      return;
+    }
 
-    const consolidationData = {
-      transport_mode: transportMode,
-      container_flight_number: flight,
-      departure_date: departureDate,
-      total_weight: totalWeight.toFixed(2),
-      package_ids: packageIds,
-      status: "CONSOLIDATED",
-    };
+    setLoading(true);
 
     try {
+      const selectedItems = packagesForConsolidation?.filter((i) =>
+        selectedPackages.includes(i.packageId)
+      );
+      const totalWeight = selectedItems.reduce(
+        (sum, item) => sum + Number(item.weight),
+        0
+      );
+      const packageIds = selectedItems.map((p) => p.packageId);
+
+      const consolidationData = {
+        transport_mode: transportMode,
+        container_flight_number: flight,
+        departure_date: departureDate,
+        total_weight: totalWeight.toFixed(2),
+        package_ids: packageIds,
+        status: "OPEN",
+        warehouse_location_id: selectedWarehouse.id,
+      };
+
       // @ts-ignore
       const res = await createConsolidationBatch(consolidationData);
       const newMawbData = res.data;
@@ -459,6 +470,8 @@ const WarehouseOperations: React.FC = () => {
     } catch (error) {
       showToast("Failed to create consolidation batch.", "error");
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -583,6 +596,7 @@ const WarehouseOperations: React.FC = () => {
         flightVessel: c.container_flight_number,
         carrier: "",
         hwbs: c.packages.map((p) => p.hwb_number),
+        mawb_number: c.mawb_number,
         status: c.status,
         taxStatus: TaxStatus.UNASSESSED,
         eta: "Pending",
@@ -766,8 +780,10 @@ const WarehouseOperations: React.FC = () => {
               required
               className="w-full border border-slate-300 p-2 rounded bg-white text-slate-900"
             >
-              <option value="air">Air Freight</option>
-              <option value="sea">Sea Freight</option>
+              <option value="AIR">Air Freight</option>
+              <option value="SEA">Sea Freight</option>
+              <option value="ROAD">Road Freight</option>
+              <option value="TRAIN">Train Freight</option>
             </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -816,9 +832,10 @@ const WarehouseOperations: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700"
+              disabled={loading}
+              className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700 disabled:opacity-50"
             >
-              Generate MAWB
+              {loading ? "Generating..." : "Generate MAWB"}
             </button>
           </div>
         </form>

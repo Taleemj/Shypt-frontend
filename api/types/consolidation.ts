@@ -16,20 +16,20 @@ export interface ConsolidationPackage extends Package {
 
 export interface Consolidation {
   id: number;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
   deleted_at: string | null;
-  mawb_number: string;
-  transport_mode: string; // Consider making this an enum if values are fixed
+  transport_mode: "AIR" | "SEA" | "ROAD" | "TRAIN";
   container_flight_number: string;
   departure_date: string;
-  status: string; // Consider making this an enum if values are fixed
+  status?: "OPEN" | "FINALIZED" | "DEPARTED" | "ARRIVED";
+  mawb_number: string;
   package_count: number;
   total_weight: string; // Keeping as string due to "0.00" format in example
   created_by: number;
-  finalized_at: string;
-  departed_at: string;
-  arrived_at: string;
+  finalized_at?: string;
+  departed_at?: string;
+  arrived_at?: string;
+  warehouse_location_id: number;
   packages: ConsolidationPackage[];
 }
-

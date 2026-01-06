@@ -8,11 +8,20 @@ interface ConsolidateFlowProps {
   handleBulkConsolidateAction: (action: string) => void;
   handleOpenConsolidate: () => void;
   loading: boolean;
-  packagesForConsolidation: { id: string; packageId: number; weight: number; desc: string; client: string; value: number; status: string; origin: string; }[];
+  packagesForConsolidation: {
+    id: string;
+    packageId: number;
+    weight: number;
+    desc: string;
+    client: string;
+    value: number;
+    status: string;
+    origin: string;
+  }[];
   currentLocation: string;
   setSelectedPackages: (ids: number[]) => void;
   togglePackageSelection: (id: number) => void;
-  outboundManifests: MAWB[];
+  outboundManifests: any[];
   handleManifestAction: (action: string, manifest: MAWB) => void;
 }
 
@@ -76,7 +85,9 @@ const ConsolidateFlow: React.FC<ConsolidateFlowProps> = ({
                   type="checkbox"
                   onChange={(e) => {
                     if (e.target.checked)
-                      setSelectedPackages(packagesForConsolidation.map((i) => i.packageId));
+                      setSelectedPackages(
+                        packagesForConsolidation.map((i) => i.packageId)
+                      );
                     else setSelectedPackages([]);
                   }}
                 />
@@ -106,7 +117,9 @@ const ConsolidateFlow: React.FC<ConsolidateFlowProps> = ({
                 <tr
                   key={item.packageId}
                   className={`border-b border-slate-100 hover:bg-slate-50 ${
-                    selectedPackages.includes(item.packageId) ? "bg-blue-50" : ""
+                    selectedPackages.includes(item.packageId)
+                      ? "bg-blue-50"
+                      : ""
                   }`}
                 >
                   <td className="p-3">
@@ -167,7 +180,7 @@ const ConsolidateFlow: React.FC<ConsolidateFlowProps> = ({
                         onClick={() => handleManifestAction("VIEW", m)}
                         className="hover:underline text-left"
                       >
-                        {m.id}
+                        {m.mawb_number}
                       </button>
                     </td>
                     <td className="px-4 py-3 text-sm font-bold text-slate-700">
@@ -183,7 +196,7 @@ const ConsolidateFlow: React.FC<ConsolidateFlowProps> = ({
                     </td>
                     <td className="px-4 py-3 text-sm text-right">
                       <div className="font-medium">
-                        {m.totalWeight.toFixed(2)} kg
+                        {Number(m.totalWeight).toFixed(2)} kg
                       </div>
                       <div className="text-xs text-slate-500">
                         {m.hwbs.length} pcs
