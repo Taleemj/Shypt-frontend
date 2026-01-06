@@ -28,8 +28,8 @@ interface LocalPayment extends ApiPayment {
   client: string;
   clientId?: string;
   linkedInvoices?: string[];
+  invoiceCurrency?: string; // Add currency of the linked invoice
 }
-
 const Payments: React.FC = () => {
   const { showToast } = useToast();
   const { listInvoices, recordInvoicePayment } = useInvoice();
@@ -103,6 +103,7 @@ const Payments: React.FC = () => {
         client: paymentClient?.full_name || "N/A",
         clientId: paymentClient?.id.toString(),
         linkedInvoices: linkedInvoice ? [linkedInvoice.invoice_number] : [],
+        invoiceCurrency: linkedInvoice?.currency || "USD",
       };
 
       setPayments((prevPayments) => [newPaymentForState, ...prevPayments]);
@@ -261,7 +262,8 @@ const Payments: React.FC = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4 font-bold text-green-700">
-                  ${pay.amount.toFixed(2)}
+                  {pay.invoiceCurrency === "UGX" ? "UGX " : "$"}
+                  {pay.amount.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 text-xs">
                   {pay.linkedInvoices && pay.linkedInvoices.length > 0 ? (
@@ -390,7 +392,8 @@ const Payments: React.FC = () => {
               </option>
               {availableInvoices.map((inv) => (
                 <option key={inv.id} value={inv.id}>
-                  {inv.invoice_number} - $
+                  {inv.invoice_number} -{" "}
+                  {inv.currency === "UGX" ? "UGX " : "USD"}
                   {inv.line_items
                     .reduce(
                       (acc, item) =>
@@ -407,10 +410,26 @@ const Payments: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700">
-                Amount (USD)
+                Amount (
+                {selectedInvoice
+                  ? allInvoices.find(
+                      (inv) => inv.id === parseInt(selectedInvoice, 10)
+                    )?.currency === "UGX"
+                    ? "UGX"
+                    : "USD"
+                  : "USD"}
+                )
               </label>
               <div className="relative mt-1">
-                <span className="absolute left-3 top-2 text-slate-500">$</span>
+                <span className="absolute left-3 top-2 text-slate-500">
+                  {selectedInvoice
+                    ? allInvoices.find(
+                        (inv) => inv.id === parseInt(selectedInvoice, 10)
+                      )?.currency === "UGX"
+                      ? "UGX "
+                      : "$"
+                    : "$"}
+                </span>{" "}
                 <input
                   name="amount"
                   type="number"

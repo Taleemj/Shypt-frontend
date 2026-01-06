@@ -75,6 +75,7 @@ export interface CreateInvoicePayload {
   order_id?: number;
   due_date?: string; // YYYY-MM-DD
   user_id: number;
+  currency: string;
 }
 
 export interface UpdateInvoicePayload {

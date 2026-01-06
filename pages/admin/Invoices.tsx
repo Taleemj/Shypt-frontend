@@ -17,6 +17,7 @@ interface InvoiceRowData {
   status: string;
   date: string;
   original_id: number;
+  currency: string;
 }
 
 const Invoices: React.FC = () => {
@@ -28,6 +29,7 @@ const Invoices: React.FC = () => {
   const { fetchAllUsers } = useAuth();
   const [invoices, setInvoices] = useState<InvoiceRowData[]>([]);
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(true);
+  const [currency, setCurrency] = useState<string>('USD');
 
   const fetchInvoicesAndUsers = async () => {
     try {
@@ -41,6 +43,7 @@ const Invoices: React.FC = () => {
         status: inv.status,
         date: new Date(inv.created_at).toLocaleDateString(),
         original_id: inv.id,
+        currency: inv.currency || 'USD', // Populate currency, default to USD if null
       }));
       setInvoices(mappedInvoices);
 
@@ -72,9 +75,10 @@ const Invoices: React.FC = () => {
       type: formData.get("type") as string,
       amount: parseFloat(formData.get("amount") as string),
       notes: formData.get("notes") as string,
+      currency: formData.get("currency") as string, // Add currency to payload
     };
 
-    if (!payload.user_id || !payload.type || !payload.amount) {
+    if (!payload.user_id || !payload.type || !payload.amount || !payload.currency) {
       showToast("Please fill all required fields.", "error");
       return;
     }
@@ -86,6 +90,7 @@ const Invoices: React.FC = () => {
         user_id: payload.user_id,
         type: payload.type,
         due_date: new Date().toISOString().split("T")[0],
+        currency: payload.currency, // Pass currency to createInvoice
       });
 
       // @ts-ignore
@@ -134,7 +139,10 @@ const Invoices: React.FC = () => {
     },
     {
       header: "Amount",
-      accessor: (inv) => `$${inv.amount.toFixed(2)}`,
+      accessor: (inv) => {
+        const symbol = inv.currency === 'UGX' ? 'UGX ' : '$';
+        return `${symbol}${inv.amount.toFixed(2)}`;
+      },
       sortKey: "amount",
       sortable: true,
       className: "font-medium text-slate-900",
@@ -299,7 +307,7 @@ const Invoices: React.FC = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">
-              Amount (USD)
+              Amount
             </label>
             <input
               name="amount"
@@ -309,6 +317,20 @@ const Invoices: React.FC = () => {
               placeholder="0.00"
               className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Currency
+            </label>
+            <select
+              name="currency"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900"
+            >
+              <option value="USD">USD</option>
+              <option value="UGX">UGX</option>
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">
