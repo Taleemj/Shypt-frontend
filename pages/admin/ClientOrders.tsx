@@ -84,12 +84,14 @@ const ClientOrders: React.FC = () => {
         receiver_email: declaration.user.email,
         // @ts-ignore
         receiver_address: declaration.user.address,
+        warehouse_location_id: declaration.warehouse_location_id,
       };
       await placeOrder(payload);
       showToast("Order created successfully!", "success");
       setIsModalOpen(false);
       fetchData();
     } catch (error) {
+      console.error(error);
       showToast("Failed to create order.", "error");
     } finally {
       setIsSubmitting(false);
@@ -169,9 +171,7 @@ const ClientOrders: React.FC = () => {
         data={orders}
         columns={columns}
         loading={loading}
-        onRowClick={(order) =>
-          triggerNav(`/admin/client-orders/${order.id}`)
-        }
+        onRowClick={(order) => triggerNav(`/admin/client-orders/${order.id}`)}
         title="All Orders"
         searchPlaceholder="Search by tracking #, client..."
         primaryAction={

@@ -1,5 +1,6 @@
 import { AuthUser } from "./auth";
 import { Package } from "./package";
+import { WareHouseLocation } from "./warehouse";
 
 export interface Order {
   id: number;
@@ -41,6 +42,8 @@ export interface Order {
     user: AuthUser;
   }[];
   user: AuthUser;
+  warehouse_location_id: number;
+  warehouse: WareHouseLocation;
   packages: Package[];
 }
 
@@ -75,6 +78,7 @@ export interface PlaceOrderPayload {
   receiver_phone: string;
   receiver_email: string;
   receiver_address: string;
+  warehouse_location_id: number;
 }
 
 export interface UpdateOrderStatusPayload {
