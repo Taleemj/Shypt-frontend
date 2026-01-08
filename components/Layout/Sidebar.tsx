@@ -40,6 +40,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   const adminLinks = [
     { name: "Dashboard", path: "/admin/dashboard", icon: <Home size={20} /> },
 
+    // CRM & Compliance
+    { name: "CRM / Clients", path: "/admin/users", icon: <Users size={20} /> },
+
     // Core Orders
     {
       name: "Delivery Requests",
@@ -68,10 +71,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       path: "/admin/freight",
       icon: <Truck size={20} />,
     },
-
-    // CRM & Compliance
-    { name: "CRM / Clients", path: "/admin/users", icon: <Users size={20} /> },
-
     // Finance
     { name: "Invoices", path: "/admin/invoices", icon: <FileText size={20} /> },
 
