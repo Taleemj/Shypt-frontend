@@ -12,6 +12,8 @@ import {
   RegisterResponse,
   AuthUser,
 } from "@/api/types/auth";
+import { Invoice } from "../types/invoice";
+import { Payment } from "../types/invoice";
 
 const useAuth = () => {
   const logout = async (): Promise<AuthResponse> => {
@@ -85,6 +87,24 @@ const useAuth = () => {
     const { data } = await client.get("/api/customers");
     return data;
   };
+
+  const fetchCrmCustomerById = async (
+    id: number
+  ): Promise<{
+    data: {
+      user: AuthUser;
+      balance: number;
+      orders: {
+        invoices: Invoice[];
+        payments: Payment[];
+      };
+    };
+    message: string;
+    status: string;
+  }> => {
+    const { data } = await client.get(`/api/customers/${id}`);
+    return data;
+  };
   return {
     logout,
     login,
@@ -96,6 +116,7 @@ const useAuth = () => {
     changePassword,
     fetchAllUsers,
     fetchCrmCustomers,
+    fetchCrmCustomerById,
   };
 };
 
