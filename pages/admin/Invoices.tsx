@@ -8,6 +8,11 @@ import useInvoice from "@/api/invoices/useInvoice";
 import useAuth from "@/api/auth/useAuth";
 import { AuthUser } from "@/api/types/auth";
 import { Invoice } from "@/api/types/invoice";
+import {
+  Watermark,
+  SecurityFooter,
+  SecureHeader,
+} from "../../components/UI/SecurityFeatures";
 
 interface InvoiceRowData {
   id: string;
@@ -20,6 +25,172 @@ interface InvoiceRowData {
   currency: string;
 }
 
+interface PreviewData {
+  user_id: number;
+  user_full_name: string | undefined;
+  user_email: string | undefined;
+  due_date: string;
+  currency: string;
+  amount: number;
+  notes: string;
+  type: string;
+}
+
+interface InvoicePreviewProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isCreating: boolean;
+  invoiceData: PreviewData | null;
+  formatMoney: (amount: number) => string;
+}
+
+const InvoicePreviewModal: React.FC<InvoicePreviewProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  isCreating,
+  invoiceData,
+  formatMoney,
+}) => {
+  if (!isOpen || !invoiceData) return null;
+
+  const {
+    user_full_name,
+    user_email,
+    due_date,
+    currency,
+    amount,
+    notes,
+    type,
+  } = invoiceData;
+
+  const currencySymbol = currency === "UGX" ? "UGX " : "$";
+  const subtotal = amount;
+  const tax = 0.0;
+  const total = subtotal + tax;
+  const description = notes || type;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Invoice Preview" size="xl">
+      <div className="bg-white rounded-lg px-6 relative overflow-hidden">
+        <Watermark text="PREVIEW" />
+        <SecureHeader title="Commercial Invoice" />
+
+        <div className="relative z-10">
+          <div className="flex justify-between border-b border-slate-100 pb-6 mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800">INVOICE</h1>
+              <p className="text-slate-500 mt-1 font-mono">#DRAFT-001</p>
+            </div>
+            <div className="text-right">
+              <h3 className="font-bold text-slate-800">Shypt Logistics</h3>
+              <p className="text-sm text-slate-500">Plot 12, Industrial Area</p>
+              <p className="text-sm text-slate-500">Kampala, Uganda</p>
+              <p className="text-sm text-slate-500">www.shypt.net</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase mb-1">
+                Bill To
+              </p>
+              <p className="font-bold text-slate-800">{user_full_name}</p>
+              <p className="text-sm text-slate-500">{user_email}</p>
+            </div>
+            <div className="text-right">
+              <div className="mb-2">
+                <p className="text-xs font-bold text-slate-400 uppercase">
+                  Due Date
+                </p>
+                <p className="font-bold text-slate-800">
+                  {new Date(due_date).toLocaleDateString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase">
+                  Amount Due
+                </p>
+                <p className="text-xl font-bold text-slate-800">
+                  {currencySymbol}
+                  {formatMoney(total)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <table className="w-full text-left mb-6">
+            <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
+              <tr>
+                <th className="px-4 py-3 rounded-l-md">Description</th>
+                <th className="px-4 py-3 text-right rounded-r-md">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="px-4 py-3 text-slate-700">{description}</td>
+                <td className="px-4 py-3 text-right font-medium text-slate-900">
+                  {currencySymbol}
+                  {formatMoney(amount)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div className="flex justify-end">
+            <div className="w-full md:w-1/2 space-y-2">
+              <div className="flex justify-between text-sm text-slate-600">
+                <span>Subtotal</span>
+                <span>
+                  {currencySymbol}
+                  {formatMoney(subtotal)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm text-slate-600">
+                <span>Tax (0%)</span>
+                <span>
+                  {currencySymbol}
+                  {formatMoney(tax)}
+                </span>
+              </div>
+              <div className="flex justify-between text-lg font-bold text-slate-800 border-t border-slate-200 pt-2 mt-2">
+                <span>Total</span>
+                <span>
+                  {currencySymbol}
+                  {formatMoney(total)}
+                </span>
+              </div>
+            </div>
+          </div>
+          <SecurityFooter
+            type="DRAFT"
+            reference={new Date().getTime().toString()}
+          />
+        </div>
+      </div>
+      <div className="flex justify-end pt-3 bg-slate-50 -mx-6 -mb-6 px-6 py-3 rounded-b-lg">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isCreating}
+          className="px-4 py-2 border rounded text-slate-600 mr-2 bg-white hover:bg-slate-50"
+        >
+          Edit
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={isCreating}
+          className="px-4 py-2 bg-slate-800 text-white rounded hover:bg-slate-700 disabled:bg-slate-500"
+        >
+          {isCreating ? "Saving..." : "Save and Send"}
+        </button>
+      </div>
+    </Modal>
+  );
+};
+
 const Invoices: React.FC = () => {
   const { showToast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -29,7 +200,9 @@ const Invoices: React.FC = () => {
   const { fetchAllUsers } = useAuth();
   const [invoices, setInvoices] = useState<InvoiceRowData[]>([]);
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(true);
-  const [currency, setCurrency] = useState<string>('USD');
+  const [currency, setCurrency] = useState<string>("USD");
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
 
   const fetchInvoicesAndUsers = async () => {
     try {
@@ -43,7 +216,7 @@ const Invoices: React.FC = () => {
         status: inv.status,
         date: new Date(inv.created_at).toLocaleDateString(),
         original_id: inv.id,
-        currency: inv.currency || 'USD', // Populate currency, default to USD if null
+        currency: inv.currency || "USD", // Populate currency, default to USD if null
       }));
       setInvoices(mappedInvoices);
 
@@ -66,31 +239,46 @@ const Invoices: React.FC = () => {
     window.dispatchEvent(new CustomEvent("app-navigate", { detail: path }));
   };
 
-  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handlePreview = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const amount = parseFloat(formData.get("amount") as string);
+    const userId = parseInt(formData.get("client") as string);
+    const user = usersList.find((u) => u.id === userId);
+    const currency = formData.get("currency") as string;
+    const type = formData.get("type") as string;
 
-    const payload = {
-      user_id: parseInt(formData.get("client") as string),
-      type: formData.get("type") as string,
-      amount: parseFloat(formData.get("amount") as string),
-      notes: formData.get("notes") as string,
-      currency: formData.get("currency") as string, // Add currency to payload
-    };
-
-    if (!payload.user_id || !payload.type || !payload.amount || !payload.currency) {
+    if (!userId || !type || !amount || !currency) {
       showToast("Please fill all required fields.", "error");
       return;
     }
 
+    const data: PreviewData = {
+      user_id: userId,
+      user_full_name: user?.full_name,
+      user_email: user?.email,
+      type: type,
+      amount: amount,
+      notes: formData.get("notes") as string,
+      currency: currency,
+      due_date: new Date().toISOString().split("T")[0],
+    };
+
+    setPreviewData(data);
+    setIsPreviewOpen(true);
+    setIsCreateOpen(false);
+  };
+
+  const handleConfirmCreate = async () => {
+    if (!previewData) return;
+
     setIsCreating(true);
-    console.log(payload);
     try {
       const invoiceResponse = await createInvoice({
-        user_id: payload.user_id,
-        type: payload.type,
-        due_date: new Date().toISOString().split("T")[0],
-        currency: payload.currency, // Pass currency to createInvoice
+        user_id: previewData.user_id,
+        type: previewData.type,
+        due_date: previewData.due_date,
+        currency: previewData.currency,
       });
 
       // @ts-ignore
@@ -98,15 +286,16 @@ const Invoices: React.FC = () => {
 
       await addItemToInvoice({
         invoice_id: newInvoice.id,
-        description: payload.notes || payload.type,
+        description: previewData.notes || previewData.type,
         quantity: 1,
-        unit_price: payload.amount,
+        unit_price: previewData.amount,
       });
 
       await fetchInvoicesAndUsers();
 
       showToast("Invoice Generated and Sent to Client", "success");
-      setIsCreateOpen(false);
+      setIsPreviewOpen(false);
+      setPreviewData(null);
     } catch (error) {
       console.error("Failed to create invoice", error);
       showToast("Failed to create invoice. Please try again.", "error");
@@ -116,7 +305,7 @@ const Invoices: React.FC = () => {
   };
 
   const formatMoney = (amount: number) => {
-    return amount.toLocaleString('en-US', {
+    return amount.toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
@@ -147,7 +336,7 @@ const Invoices: React.FC = () => {
     {
       header: "Amount",
       accessor: (inv) => {
-        const symbol = inv.currency === 'UGX' ? 'UGX ' : '$';
+        const symbol = inv.currency === "UGX" ? "UGX " : "$";
         return `${symbol}${formatMoney(inv.amount)}`;
       },
       sortKey: "amount",
@@ -290,18 +479,7 @@ const Invoices: React.FC = () => {
         onClose={() => setIsCreateOpen(false)}
         title="Generate New Invoice"
       >
-        <form onSubmit={handleCreate} className="space-y-4">
-          {/* <div>
-            <label className="block text-sm font-medium text-slate-700">
-              Client
-            </label>
-            <input
-              name="client"
-              required
-              placeholder="Client Name or ID"
-              className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900"
-            />
-          </div> */}
+        <form onSubmit={handlePreview} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700">
               Select Client
@@ -381,11 +559,23 @@ const Invoices: React.FC = () => {
               disabled={isCreating}
               className="px-4 py-2 bg-slate-800 text-white rounded hover:bg-slate-700 disabled:bg-slate-500"
             >
-              {isCreating ? "Sending..." : "Send Invoice"}
+              Preview Invoice
             </button>
           </div>
         </form>
       </Modal>
+
+      <InvoicePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          setIsCreateOpen(true);
+        }}
+        onConfirm={handleConfirmCreate}
+        isCreating={isCreating}
+        invoiceData={previewData}
+        formatMoney={formatMoney}
+      />
     </div>
   );
 };
