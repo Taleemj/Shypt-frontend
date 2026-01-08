@@ -14,23 +14,87 @@ import StatusBadge from "../../components/UI/StatusBadge";
 import useDashboard from "@/api/dashboard/useDashboard";
 import { Counters } from "@/api/types/dashboard";
 import { useLocation } from "react-router-dom";
+import useOrders from "../../api/orders/useOrders";
+import { Order } from "../../api/types/orders";
+
+const timeAgo = (date: string): string => {
+  const seconds = Math.floor(
+    (new Date().getTime() - new Date(date).getTime()) / 1000
+  );
+  let interval = seconds / 31536000;
+  if (interval > 1) {
+    return Math.floor(interval) + " years ago";
+  }
+  interval = seconds / 2592000;
+  if (interval > 1) {
+    return Math.floor(interval) + " months ago";
+  }
+  interval = seconds / 86400;
+  if (interval > 1) {
+    return Math.floor(interval) + " days ago";
+  }
+  interval = seconds / 3600;
+  if (interval > 1) {
+    return Math.floor(interval) + " hours ago";
+  }
+  interval = seconds / 60;
+  if (interval > 1) {
+    return Math.floor(interval) + " minutes ago";
+  }
+  return Math.floor(seconds) + " seconds ago";
+};
+interface RecentHwb {
+  id: string;
+  user: string;
+  mawb: string;
+  status: string;
+  date: string;
+}
 
 const AdminDashboard: React.FC = () => {
   const [counters, setCounters] = useState<Counters | null>(null);
   const { pathname } = useLocation();
   const { fetchDashboard } = useDashboard();
+  const { getOrders } = useOrders();
+  const [recentHwbs, setRecentHwbs] = useState<RecentHwb[]>([]);
+  const [hwbsLoading, setHwbsLoading] = useState(true);
 
   useEffect(() => {
     fetchDashboard().then(setCounters).catch(console.error);
-  }, [pathname]);
 
-  // Mock Data
-  // const stats = [
-  //   { title: 'Pending Orders', value: 24, icon: <Package className="text-blue-600" />, trend: '+12%', trendUp: true },
-  //   { title: 'Compliance Holds', value: 5, icon: <AlertTriangle className="text-red-600" />, trend: '-2', trendUp: true },
-  //   { title: 'Active Consolidations', value: 8, icon: <TrendingUp className="text-purple-600" />, trend: 'Steady', trendUp: true },
-  //   { title: 'Pending Revenue', value: '2,450', icon: <DollarSign className="text-green-600" />, trend: '+8%', trendUp: true },
-  // ];
+    setHwbsLoading(true);
+    getOrders()
+      .then((response) => {
+        const orders: Order[] = response.data?.data || [];
+        console.log("orders", orders);
+        const allPackages = orders.flatMap((order) =>
+          order.packages.map((pkg) => ({
+            id: pkg.hwb_number,
+            user: order.user.full_name,
+            // @ts-ignore
+            mawb: pkg.consolidation_batch_id
+              ? // @ts-ignore
+                `MAWB-${pkg.consolidation_batch_id}`
+              : "-",
+            status: order.status,
+            date: timeAgo(pkg.created_at),
+            createdAt: pkg.created_at,
+          }))
+        );
+
+        const sortedPackages = allPackages.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setRecentHwbs(sortedPackages.slice(0, 5));
+      })
+      .catch((error) => {
+        console.error("Failed to fetch recent HWBs", error);
+      })
+      .finally(() => {
+        setHwbsLoading(false);
+      });
+  }, [pathname]);
 
   const stats = [
     {
@@ -70,37 +134,6 @@ const AdminDashboard: React.FC = () => {
     },
   ];
 
-  const recentHwbs = [
-    {
-      id: "HWB-20250301-01",
-      user: "Acme Corp",
-      mawb: "MAWB-2025-001",
-      status: "RECEIVED",
-      date: "10 mins ago",
-    },
-    {
-      id: "HWB-20250301-02",
-      user: "John Doe",
-      mawb: "-",
-      status: "PENDING",
-      date: "25 mins ago",
-    },
-    {
-      id: "HWB-20250301-03",
-      user: "Jane Smith",
-      mawb: "MAWB-2025-002",
-      status: "CONSOLIDATED",
-      date: "1 hour ago",
-    },
-    {
-      id: "HWB-20250301-04",
-      user: "Global Trade Ltd",
-      mawb: "-",
-      status: "ON_HOLD",
-      date: "2 hours ago",
-    },
-  ];
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -135,13 +168,6 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="p-2 bg-slate-50 rounded-lg">{stat.icon}</div>
             </div>
-            {/* Trend data is not available in the new API response, so it's commented out */}
-            {/* <div className="mt-4 flex items-center text-sm">
-              <span className={`font-medium ${stat.trendUp ? 'text-green-600' : 'text-red-600'}`}>
-                {stat.trend}
-              </span>
-              <span className="text-slate-400 ml-2">from last week</span>
-            </div> */}
           </div>
         ))}
       </div>
@@ -174,25 +200,39 @@ const AdminDashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {recentHwbs.map((hwb) => (
-                  <tr key={hwb.id} className="hover:bg-slate-50 transition">
-                    <td className="px-6 py-4 text-sm font-medium text-slate-900">
-                      {hwb.id}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {hwb.user}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600 font-mono text-xs">
-                      {hwb.mawb}
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={hwb.status} />
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-500 text-right">
-                      {hwb.date}
+                {hwbsLoading ? (
+                  <tr>
+                    <td colSpan={5} className="text-center p-8 text-slate-500">
+                      Loading recent waybills...
                     </td>
                   </tr>
-                ))}
+                ) : recentHwbs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center p-8 text-slate-500">
+                      No recent house waybills found.
+                    </td>
+                  </tr>
+                ) : (
+                  recentHwbs.map((hwb) => (
+                    <tr key={hwb.id} className="hover:bg-slate-50 transition">
+                      <td className="px-6 py-4 text-sm font-medium text-slate-900">
+                        {hwb.id}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {hwb.user}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600 font-mono text-xs">
+                        {hwb.mawb}
+                      </td>
+                      <td className="px-6 py-4">
+                        <StatusBadge status={hwb.status} />
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-500 text-right">
+                        {hwb.date}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
