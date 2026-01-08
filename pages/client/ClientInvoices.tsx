@@ -21,6 +21,7 @@ interface ClientInvoiceRowData {
   status: string;
   dueDate: string;
   original_id: number;
+  currency: string;
 }
 
 const ClientInvoices: React.FC = () => {
@@ -47,7 +48,10 @@ const ClientInvoices: React.FC = () => {
         };
 
         const calculateTotalAmount = (lineItems: LineItem[]) => {
-          return lineItems.reduce((acc, item) => acc + Number(item.total), 0);
+          return lineItems.reduce(
+            (acc, item) => acc + Number(item.unit_price),
+            0
+          );
         };
 
         const mappedInvoices = response.data.map((inv) => ({
@@ -58,6 +62,7 @@ const ClientInvoices: React.FC = () => {
           status: inv.status,
           dueDate: new Date(inv.due_date).toLocaleDateString(),
           original_id: inv.id,
+          currency: inv.currency || "USD",
         }));
         setInvoices(mappedInvoices);
       } catch (error) {
@@ -69,20 +74,42 @@ const ClientInvoices: React.FC = () => {
     fetchInvoices();
   }, [showToast]);
 
-  const totalDue = useMemo(
-    () =>
-      invoices
-        .filter((i) => i.status === "PENDING")
-        .reduce((acc, curr) => acc + curr.amount, 0),
-    [invoices]
-  );
-  const lifetimePaid = useMemo(
-    () =>
-      invoices
-        .filter((i) => i.status === "PAID")
-        .reduce((acc, curr) => acc + curr.amount, 0),
-    [invoices]
-  );
+  const { usdTotalDue, ugxTotalDue } = useMemo(() => {
+    let usd = 0;
+    let ugx = 0;
+    invoices
+      .filter((i) => i.status === "PENDING" || i.status === "UNPAID")
+      .forEach((i) => {
+        if (i.currency === "UGX") {
+          ugx += i.amount;
+        } else {
+          usd += i.amount;
+        }
+      });
+    return { usdTotalDue: usd, ugxTotalDue: ugx };
+  }, [invoices]);
+
+  const { usdLifetimePaid, ugxLifetimePaid } = useMemo(() => {
+    let usd = 0;
+    let ugx = 0;
+    invoices
+      .filter((i) => i.status === "PAID")
+      .forEach((i) => {
+        if (i.currency === "UGX") {
+          ugx += i.amount;
+        } else {
+          usd += i.amount;
+        }
+      });
+    return { usdLifetimePaid: usd, ugxLifetimePaid: ugx };
+  }, [invoices]);
+
+  const formatMoney = (amount: number) => {
+    return amount.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
 
   const columns: Column<ClientInvoiceRowData>[] = [
     {
@@ -109,7 +136,7 @@ const ClientInvoices: React.FC = () => {
       accessor: (i) => (
         <span
           className={
-            i.status === "PENDING"
+            i.status === "PENDING" || i.status === "UNPAID"
               ? "text-orange-600 font-medium"
               : "text-slate-500"
           }
@@ -127,14 +154,17 @@ const ClientInvoices: React.FC = () => {
     },
     {
       header: "Amount",
-      accessor: (i) => `$${i.amount.toFixed(2)}`,
+      accessor: (i) => {
+        const symbol = i.currency === "UGX" ? "UGX " : "$";
+        return `${symbol}${formatMoney(i.amount)}`;
+      },
       className: "font-bold text-right text-slate-900",
     },
     {
       header: "",
       className: "text-right",
       accessor: (i) =>
-        i.status === "PENDING" ? (
+        i.status === "PENDING" || i.status === "UNPAID" ? (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -170,31 +200,53 @@ const ClientInvoices: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {usdTotalDue > 0 && (
+          <div className="bg-gradient-to-r from-red-50 to-white p-6 rounded-lg shadow-sm border border-red-100 flex items-center justify-between">
+            <div>
+              <p className="text-red-600 text-xs font-bold uppercase tracking-wider mb-1 flex items-center">
+                <Clock size={12} className="mr-1" /> Outstanding Balance (USD)
+              </p>
+              <p className="text-3xl font-extrabold text-slate-900">
+                ${formatMoney(usdTotalDue)}
+              </p>
+              <p className="text-slate-500 text-xs mt-1">
+                {
+                  invoices.filter(
+                    (i) => i.status === "PENDING" || i.status === "UNPAID"
+                  ).length
+                }{" "}
+                Unpaid Invoices
+              </p>
+            </div>
+            <div className="h-12 w-12 bg-white rounded-full flex items-center justify-center shadow-sm text-red-500">
+              <FileText size={24} />
+            </div>
+          </div>
+        )}
+        {/* {ugxTotalDue > 0 && ( */}
         <div className="bg-gradient-to-r from-red-50 to-white p-6 rounded-lg shadow-sm border border-red-100 flex items-center justify-between">
           <div>
             <p className="text-red-600 text-xs font-bold uppercase tracking-wider mb-1 flex items-center">
-              <Clock size={12} className="mr-1" /> Outstanding Balance
+              <Clock size={12} className="mr-1" /> Outstanding Balance (UGX)
             </p>
             <p className="text-3xl font-extrabold text-slate-900">
-              ${totalDue.toFixed(2)}
-            </p>
-            <p className="text-slate-500 text-xs mt-1">
-              {invoices.filter((i) => i.status === "PENDING").length} Unpaid
-              Invoices
+              UGX {formatMoney(ugxTotalDue)}
             </p>
           </div>
           <div className="h-12 w-12 bg-white rounded-full flex items-center justify-center shadow-sm text-red-500">
             <FileText size={24} />
           </div>
         </div>
+        {/* )} */}
 
+        {/* {ugxLifetimePaid > 0 && ( */}
         <div className="bg-gradient-to-r from-green-50 to-white p-6 rounded-lg shadow-sm border border-green-100 flex items-center justify-between">
           <div>
             <p className="text-green-600 text-xs font-bold uppercase tracking-wider mb-1 flex items-center">
-              <TrendingUp size={12} className="mr-1" /> Paid (Lifetime)
+              <TrendingUp size={12} className="mr-1" /> Paid (Lifetime UGX)
             </p>
             <p className="text-3xl font-extrabold text-slate-900">
-              ${lifetimePaid.toFixed(2)}
+              UGX {formatMoney(ugxLifetimePaid)}
             </p>
             <p className="text-slate-500 text-xs mt-1">All time payments</p>
           </div>
@@ -202,6 +254,24 @@ const ClientInvoices: React.FC = () => {
             <CheckCircle size={24} />
           </div>
         </div>
+        {/* )} */}
+
+        {/* {usdLifetimePaid > 0 && ( */}
+        <div className="bg-gradient-to-r from-green-50 to-white p-6 rounded-lg shadow-sm border border-green-100 flex items-center justify-between">
+          <div>
+            <p className="text-green-600 text-xs font-bold uppercase tracking-wider mb-1 flex items-center">
+              <TrendingUp size={12} className="mr-1" /> Paid (Lifetime USD)
+            </p>
+            <p className="text-3xl font-extrabold text-slate-900">
+              ${formatMoney(usdLifetimePaid)}
+            </p>
+            <p className="text-slate-500 text-xs mt-1">All time payments</p>
+          </div>
+          <div className="h-12 w-12 bg-white rounded-full flex items-center justify-center shadow-sm text-green-500">
+            <CheckCircle size={24} />
+          </div>
+        </div>
+        {/* )} */}
       </div>
 
       <DataTable
