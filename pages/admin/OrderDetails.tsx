@@ -356,14 +356,14 @@ const AdminOrderDetails: React.FC<AdminOrderDetailsProps> = ({
             <CheckCircle size={14} className="mr-2" /> Update Status
           </button>
         )}
-        <button
+        {/* <button
           onClick={() =>
             showToast("Action Triggered: GENERATE_INVOICE", "info")
           }
           className="flex items-center px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-sm transition"
         >
           <DollarSign size={14} className="mr-2" /> Generate Invoice
-        </button>
+        </button> */}
         <button
           onClick={() => setIsUploadModalOpen(true)}
           className="flex items-center px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-sm transition"
@@ -483,16 +483,16 @@ const AdminOrderDetails: React.FC<AdminOrderDetailsProps> = ({
                       <div className="flex items-center">
                         <FileText className="text-red-500 mr-3" size={20} />
                         <div>
-                          <p className="text-sm font-medium text-slate-700">
+                          {/* <p className="text-sm font-medium text-slate-700">
                             {file.split("/").pop()}
-                          </p>
+                          </p> */}
                           <p className="text-xs text-slate-500">
                             Attached File
                           </p>
                         </div>
                       </div>
                       <a
-                        href={file}
+                        href={import.meta.env.VITE_API_URL + "/" + file}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm text-blue-600 hover:underline"

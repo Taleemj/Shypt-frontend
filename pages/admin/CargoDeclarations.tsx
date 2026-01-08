@@ -276,7 +276,9 @@ const CargoDeclarations: React.FC = () => {
     },
     {
       header: "Status",
-      accessor: (declaration) => <StatusBadge status={declaration.status} />,
+      accessor: (declaration) => (
+        <StatusBadge status={declaration.status.toUpperCase()} />
+      ),
       sortKey: "status",
       sortable: true,
     },
