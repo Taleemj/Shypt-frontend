@@ -71,6 +71,20 @@ const useAuth = () => {
     const { data } = await client.get("/api/auth/all_profiles");
     return data;
   };
+
+  const fetchCrmCustomers = async (): Promise<{
+    data: {
+      balance: number;
+      email: string;
+      phone: string;
+      status: string;
+    }[];
+    message: string;
+    status: string;
+  }> => {
+    const { data } = await client.get("/api/customers");
+    return data;
+  };
   return {
     logout,
     login,
@@ -81,6 +95,7 @@ const useAuth = () => {
     register,
     changePassword,
     fetchAllUsers,
+    fetchCrmCustomers,
   };
 };
 
