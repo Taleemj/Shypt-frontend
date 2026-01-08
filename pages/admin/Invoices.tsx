@@ -163,10 +163,10 @@ const InvoicePreviewModal: React.FC<InvoicePreviewProps> = ({
               </div>
             </div>
           </div>
-          <SecurityFooter
+          {/* <SecurityFooter
             type="DRAFT"
             reference={new Date().getTime().toString()}
-          />
+          /> */}
         </div>
       </div>
       <div className="flex justify-end pt-3 bg-slate-50 -mx-6 -mb-6 px-6 py-3 rounded-b-lg">
@@ -196,7 +196,8 @@ const Invoices: React.FC = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [usersList, setUsersList] = useState<AuthUser[]>([]);
-  const { listInvoices, createInvoice, addItemToInvoice } = useInvoice();
+  const { listInvoices, createInvoice, addItemToInvoice, sendInvoiceByEmail } =
+    useInvoice();
   const { fetchAllUsers } = useAuth();
   const [invoices, setInvoices] = useState<InvoiceRowData[]>([]);
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(true);
@@ -291,9 +292,16 @@ const Invoices: React.FC = () => {
         unit_price: previewData.amount,
       });
 
+      try {
+        await sendInvoiceByEmail(newInvoice.id);
+        showToast("Invoice Generated and Sent to Client", "success");
+      } catch (emailError) {
+        console.error("Failed to send invoice email", emailError);
+        showToast("Invoice generated, but failed to send email.", "warning");
+      }
+
       await fetchInvoicesAndUsers();
 
-      showToast("Invoice Generated and Sent to Client", "success");
       setIsPreviewOpen(false);
       setPreviewData(null);
     } catch (error) {

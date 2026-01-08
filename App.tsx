@@ -240,6 +240,7 @@ const FreightDetailsWrapper = () => {
   const navigate = useNavigate();
   return (
     <FreightDetails
+      // @ts-ignore
       freightId={freightId || ""}
       onBack={() => navigate("/admin/freight")}
     />

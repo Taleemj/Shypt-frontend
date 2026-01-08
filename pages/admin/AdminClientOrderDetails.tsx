@@ -24,6 +24,195 @@ import {
   SecurityFooter,
 } from "../../components/UI/SecurityFeatures";
 import usePackage from "../../api/package/usePackage";
+import useInvoice from "../../api/invoices/useInvoice";
+
+// Interfaces for Invoice Preview
+interface LineItemData {
+  description: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+}
+
+interface PreviewData {
+  user_id: number;
+  user_full_name: string | undefined;
+  user_email: string | undefined;
+  due_date: string;
+  currency: string;
+  line_items: LineItemData[];
+  notes: string;
+  type: string;
+  order_id: number;
+}
+
+interface InvoicePreviewProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isCreating: boolean;
+  invoiceData: PreviewData | null;
+  formatMoney: (amount: number) => string;
+}
+
+const InvoicePreviewModal: React.FC<InvoicePreviewProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  isCreating,
+  invoiceData,
+  formatMoney,
+}) => {
+  if (!isOpen || !invoiceData) return null;
+
+  const { user_full_name, user_email, due_date, currency, line_items, notes } =
+    invoiceData;
+
+  const currencySymbol = currency === "UGX" ? "UGX " : "$";
+  const subtotal = line_items.reduce((acc, item) => acc + item.total, 0);
+  const tax = 0.0;
+  const total = subtotal + tax;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Invoice Preview" size="xl">
+      <div className="bg-white rounded-lg px-6 relative overflow-hidden">
+        <Watermark text="PREVIEW" />
+        <SecureHeader title="Commercial Invoice" />
+
+        <div className="relative z-10">
+          <div className="flex justify-between border-b border-slate-100 pb-6 mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800">INVOICE</h1>
+              <p className="text-slate-500 mt-1 font-mono">#DRAFT-001</p>
+            </div>
+            <div className="text-right">
+              <h3 className="font-bold text-slate-800">Shypt Logistics</h3>
+              <p className="text-sm text-slate-500">Plot 12, Industrial Area</p>
+              <p className="text-sm text-slate-500">Kampala, Uganda</p>
+              <p className="text-sm text-slate-500">www.shypt.net</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase mb-1">
+                Bill To
+              </p>
+              <p className="font-bold text-slate-800">{user_full_name}</p>
+              <p className="text-sm text-slate-500">{user_email}</p>
+            </div>
+            <div className="text-right">
+              <div className="mb-2">
+                <p className="text-xs font-bold text-slate-400 uppercase">
+                  Due Date
+                </p>
+                <p className="font-bold text-slate-800">
+                  {new Date(due_date).toLocaleDateString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase">
+                  Amount Due
+                </p>
+                <p className="text-xl font-bold text-slate-800">
+                  {currencySymbol}
+                  {formatMoney(total)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <table className="w-full text-left mb-6">
+            <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
+              <tr>
+                <th className="px-4 py-3 rounded-l-md">Description</th>
+                <th className="px-4 py-3 text-right">Qty</th>
+                <th className="px-4 py-3 text-right">Unit Price</th>
+                <th className="px-4 py-3 text-right rounded-r-md">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {line_items.map((item, index) => (
+                <tr key={index}>
+                  <td className="px-4 py-3 text-slate-700">
+                    {item.description}
+                  </td>
+                  <td className="px-4 py-3 text-right text-slate-700">
+                    {item.quantity}
+                  </td>
+                  <td className="px-4 py-3 text-right text-slate-700">
+                    {currencySymbol}
+                    {formatMoney(item.unit_price)}
+                  </td>
+
+                  <td className="px-4 py-3 text-right font-medium text-slate-900">
+                    {currencySymbol}
+                    {formatMoney(item.total)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {notes && (
+            <div className="mb-6 bg-slate-50 px-4 py-2 rounded-md text-sm text-slate-600">
+              <p className="font-bold mb-1 inline">Notes:</p>
+              <p className="inline">{notes}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <div className="w-full md:w-1/2 space-y-2">
+              <div className="flex justify-between text-sm text-slate-600">
+                <span>Subtotal</span>
+                <span>
+                  {currencySymbol}
+                  {formatMoney(subtotal)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm text-slate-600">
+                <span>Tax (0%)</span>
+                <span>
+                  {currencySymbol}
+                  {formatMoney(tax)}
+                </span>
+              </div>
+              <div className="flex justify-between text-lg font-bold text-slate-800 border-t border-slate-200 pt-2 mt-2">
+                <span>Total</span>
+                <span>
+                  {currencySymbol}
+                  {formatMoney(total)}
+                </span>
+              </div>
+            </div>
+          </div>
+          {/* <SecurityFooter
+            type="DRAFT"
+            reference={new Date().getTime().toString()}
+          /> */}
+        </div>
+      </div>
+      <div className="flex justify-end pt-3 bg-slate-50 -mx-6 -mb-6 px-6 py-3 rounded-b-lg">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isCreating}
+          className="px-4 py-2 border rounded text-slate-600 mr-2 bg-white hover:bg-slate-50"
+        >
+          Edit
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={isCreating}
+          className="px-4 py-2 bg-slate-800 text-white rounded hover:bg-slate-700 disabled:bg-slate-500"
+        >
+          {isCreating ? "Saving..." : "Save and Send"}
+        </button>
+      </div>
+    </Modal>
+  );
+};
 
 interface AdminClientOrderDetailsProps {
   orderId: string;
@@ -49,6 +238,7 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
   const { showToast } = useToast();
   const { getOrder, updateOrderStatus, deleteOrder } = useOrders();
   const { addPackageToOrder } = usePackage();
+  const { createInvoice, addItemToInvoice, sendInvoiceByEmail } = useInvoice();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,6 +253,17 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
   const [packageWidth, setPackageWidth] = useState("");
   const [packageHeight, setPackageHeight] = useState("");
   const [isAddingPackage, setIsAddingPackage] = useState(false);
+
+  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [isCreateInvoiceModalOpen, setIsCreateInvoiceModalOpen] =
+    useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
+  const [invoiceCurrency, setInvoiceCurrency] = useState("USD");
+
+  const triggerNav = (path: string) => {
+    window.dispatchEvent(new CustomEvent("app-navigate", { detail: path }));
+  };
 
   const fetchDetails = async () => {
     try {
@@ -83,6 +284,99 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
     }
   }, [orderId]);
 
+  const handlePreviewInvoice = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!order) return;
+
+    const formData = new FormData(e.currentTarget);
+    const currency = formData.get("currency") as string;
+    const type = formData.get("type") as string;
+    const notes = formData.get("notes") as string;
+    const amount = parseFloat(formData.get("amount") as string);
+
+    if (isNaN(amount) || amount <= 0) {
+      showToast("Please enter a valid amount for the invoice.", "error");
+      return;
+    }
+
+    const line_items: LineItemData[] = [
+      {
+        description: notes || type,
+        quantity: 1,
+        unit_price: amount,
+        total: amount,
+      },
+    ];
+
+    const data: PreviewData = {
+      user_id: order.user.id,
+      user_full_name: order.user.full_name,
+      user_email: order.user.email,
+      type: type,
+      notes: notes,
+      currency: currency,
+      due_date: new Date().toISOString().split("T")[0],
+      line_items: line_items,
+      order_id: order.id,
+    };
+
+    setPreviewData(data);
+    setIsCreateInvoiceModalOpen(false);
+    setIsPreviewOpen(true);
+  };
+
+  const handleConfirmCreateInvoice = async () => {
+    if (!previewData) return;
+
+    setIsGeneratingInvoice(true);
+    try {
+      const invoiceResponse = await createInvoice({
+        user_id: previewData.user_id,
+        order_id: previewData.order_id,
+        type: previewData.type,
+        due_date: previewData.due_date,
+        currency: previewData.currency,
+      });
+
+      // @ts-ignore
+      const newInvoice = invoiceResponse.data;
+
+      for (const item of previewData.line_items) {
+        await addItemToInvoice({
+          invoice_id: newInvoice.id,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+        });
+      }
+
+      try {
+        await sendInvoiceByEmail(newInvoice.id);
+        showToast("Invoice generated and sent to client!", "success");
+      } catch (emailError) {
+        console.error("Failed to send invoice email", emailError);
+        showToast("Invoice generated, but failed to send email.", "warning");
+      }
+
+      setIsPreviewOpen(false);
+      setPreviewData(null);
+
+      triggerNav(`/admin/invoices/${newInvoice.id}`);
+    } catch (error) {
+      console.error("Failed to create invoice", error);
+      showToast("Failed to create invoice. Please try again.", "error");
+    } finally {
+      setIsGeneratingInvoice(false);
+    }
+  };
+
+  const formatMoney = (amount: number) => {
+    return amount.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
   const handleAddPackage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!order) return;
@@ -94,11 +388,14 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
       // @ts-ignore
       const locationId = order.warehouse?.code || order.origin_country;
       if (!locationId) {
-        showToast("Order has no location information. Cannot add package.", "error");
+        showToast(
+          "Order has no location information. Cannot add package.",
+          "error"
+        );
         setIsAddingPackage(false);
         return;
       }
-      
+
       const packageData = {
         order_id: order.id,
         hwb_number: packageHwbNumber,
@@ -116,7 +413,7 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
 
       await addPackageToOrder(packageData);
       showToast("Package added successfully", "success");
-      
+
       setAddPackageModalOpen(false);
       setPackageContents("");
       setPackageWeight("");
@@ -129,7 +426,9 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
     } catch (error: any) {
       console.error("Failed to add package:", error);
       showToast(
-        `Failed to add package: ${'message' in error ? error.message : "Unknown error"}`,
+        `Failed to add package: ${
+          "message" in error ? error.message : "Unknown error"
+        }`,
         "error"
       );
     } finally {
@@ -323,6 +622,14 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
         >
           <Package size={14} className="mr-2" /> Add Package
         </button>
+        <button
+          onClick={() => setIsCreateInvoiceModalOpen(true)}
+          disabled={isGeneratingInvoice}
+          className="flex items-center px-3 py-1.5 bg-slate-600 hover:bg-slate-500 rounded text-sm transition font-medium disabled:opacity-50"
+        >
+          <FileText size={14} className="mr-2" />
+          {isGeneratingInvoice ? "Generating..." : "Generate Invoice"}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:block">
@@ -427,7 +734,7 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
                           </p>
                           <p className="text-xs text-slate-500">
                             {/* @ts-ignore */}
-                            Weight: {pkg.weight}kg, Value: ${pkg.declared_value || pkg.value}
+                            Weight: {pkg.weight}kg, Value: ${pkg.declared_value}
                           </p>
                         </div>
                       </div>
@@ -644,6 +951,100 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
           </div>
         </form>
       </Modal>
+
+      <Modal
+        isOpen={isCreateInvoiceModalOpen}
+        onClose={() => setIsCreateInvoiceModalOpen(false)}
+        title="Generate New Invoice"
+      >
+        <form onSubmit={handlePreviewInvoice} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Invoice Type
+            </label>
+            <select
+              name="type"
+              defaultValue="FREIGHT"
+              className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900"
+            >
+              <option value="FREIGHT">Freight Charges</option>
+              <option value="OTHER">Other</option>
+              <option value="STORAGE">Storage Fee</option>
+              <option value="CUSTOMS">Customs Duty</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Currency
+            </label>
+            <select
+              name="currency"
+              value={invoiceCurrency}
+              onChange={(e) => setInvoiceCurrency(e.target.value)}
+              className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900"
+            >
+              <option value="USD">USD</option>
+              <option value="UGX">UGX</option>
+            </select>
+          </div>
+          <div>
+            <label
+              htmlFor="amount"
+              className="block text-sm font-medium text-slate-700"
+            >
+              Amount ({invoiceCurrency})
+            </label>
+            <input
+              id="amount"
+              name="amount"
+              type="number"
+              step="0.01"
+              required
+              placeholder="0.00"
+              className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Description / Notes
+            </label>
+            <textarea
+              name="notes"
+              className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900"
+              rows={3}
+              placeholder="e.g. Freight charges for electronics shipment"
+            ></textarea>
+          </div>
+          <div className="flex justify-end pt-2">
+            <button
+              type="button"
+              onClick={() => setIsCreateInvoiceModalOpen(false)}
+              className="px-4 py-2 border rounded text-slate-600 mr-2 bg-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isGeneratingInvoice}
+              className="px-4 py-2 bg-slate-800 text-white rounded hover:bg-slate-700 disabled:bg-slate-500"
+            >
+              Preview Invoice
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <InvoicePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          setIsCreateInvoiceModalOpen(true);
+        }}
+        onConfirm={handleConfirmCreateInvoice}
+        isCreating={isGeneratingInvoice}
+        invoiceData={previewData}
+        formatMoney={formatMoney}
+      />
     </div>
   );
 };

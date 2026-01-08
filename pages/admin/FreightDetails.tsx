@@ -234,7 +234,10 @@ const FreightDetails: React.FC = () => {
                 Total Load
               </p>
               <p className="text-lg font-bold text-slate-800 mt-1">
-                {shipment.packages.reduce((acc, curr) => acc + curr.weight, 0)}{" "}
+                {shipment.packages.reduce(
+                  (acc, curr) => Number(acc) + Number(curr.weight),
+                  0
+                )}{" "}
                 kg
               </p>
               <p className="text-sm text-slate-600">
