@@ -64,14 +64,28 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <Layers size={20} />,
     },
     {
-      name: "Inventory Control",
-      path: "/admin/inventory",
-      icon: <Box size={20} />,
-    },
-    {
       name: "Freight (MAWB)",
       path: "/admin/freight",
       icon: <Truck size={20} />,
+    },
+
+    // CRM & Compliance
+    { name: "CRM / Clients", path: "/admin/users", icon: <Users size={20} /> },
+
+    // Finance
+    { name: "Invoices", path: "/admin/invoices", icon: <FileText size={20} /> },
+
+    {
+      name: "Payments",
+      path: "/admin/payments",
+      icon: <CreditCard size={20} />,
+    },
+    { name: "Settings", path: "/admin/settings", icon: <Settings size={20} /> },
+
+    {
+      name: "Inventory Control",
+      path: "/admin/inventory",
+      icon: <Box size={20} />,
     },
     {
       name: "Last Mile Delivery",
@@ -79,15 +93,10 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <Map size={20} />,
     },
 
-    // Commercial
-    { name: "Suppliers", path: "/admin/suppliers", icon: <Store size={20} /> },
-
-    // CRM & Compliance
-    { name: "CRM / Clients", path: "/admin/users", icon: <Users size={20} /> },
     {
-      name: "Compliance",
-      path: "/admin/compliance",
-      icon: <AlertTriangle size={20} />,
+      name: "Expenses",
+      path: "/admin/expenses",
+      icon: <CreditCard size={20} />,
     },
     {
       name: "Support Tickets",
@@ -95,22 +104,17 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <MessageSquare size={20} />,
     },
 
-    // Finance
-    { name: "Invoices", path: "/admin/invoices", icon: <FileText size={20} /> },
+    // Commercial
+    { name: "Suppliers", path: "/admin/suppliers", icon: <Store size={20} /> },
+
     {
-      name: "Expenses",
-      path: "/admin/expenses",
-      icon: <CreditCard size={20} />,
-    },
-    {
-      name: "Payments",
-      path: "/admin/payments",
-      icon: <CreditCard size={20} />,
+      name: "Compliance",
+      path: "/admin/compliance",
+      icon: <AlertTriangle size={20} />,
     },
 
     // System
     { name: "Reports", path: "/admin/reports", icon: <BarChart3 size={20} /> },
-    { name: "Settings", path: "/admin/settings", icon: <Settings size={20} /> },
   ];
 
   const clientLinks = [
