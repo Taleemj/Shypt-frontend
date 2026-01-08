@@ -177,7 +177,7 @@ const Freight: React.FC = () => {
       header: "Carrier Info",
       accessor: (s) => (
         <div className="text-sm">
-          <div className="font-bold text-slate-900">Unknown Carrier</div>
+          {/* <div className="font-bold text-slate-900">Unknown Carrier</div> */}
           <div className="text-xs text-slate-600 font-medium">
             {s.transport_mode === "AIR"
               ? `Flight: ${s.container_flight_number}`
@@ -198,17 +198,17 @@ const Freight: React.FC = () => {
           if (!dateString) return "N/A";
           try {
             const date = new Date(dateString);
-            return new Intl.DateTimeFormat('en-US', { 
-              year: 'numeric', 
-              month: 'short', 
-              day: 'numeric', 
-              hour: 'numeric', 
-              minute: 'numeric',
-              hour12: true 
+            return new Intl.DateTimeFormat("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              hour12: true,
             }).format(date);
           } catch (e) {
             console.error("Error formatting date:", e);
-            return dateString; 
+            return dateString;
           }
         };
 
@@ -216,7 +216,9 @@ const Freight: React.FC = () => {
           <div className="text-sm text-slate-700 w-32">
             <div className="flex justify-between">
               <span className="text-xs text-slate-500">ETD:</span>
-              <span className="font-medium">{formatDateTime(s.departure_date)}</span>
+              <span className="font-medium">
+                {formatDateTime(s.departure_date)}
+              </span>
             </div>
             <div className="flex justify-between mt-1">
               <span className="text-xs text-slate-500">ETA:</span>
@@ -307,7 +309,7 @@ const Freight: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-xl">
+        {/* <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-xl">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-emerald-800 font-bold text-sm">
@@ -321,8 +323,8 @@ const Freight: React.FC = () => {
               <Calendar className="text-emerald-600" />
             </div>
           </div>
-        </div>
-        <div className="bg-slate-50 border border-slate-200 p-6 rounded-xl">
+        </div> */}
+        {/* <div className="bg-slate-50 border border-slate-200 p-6 rounded-xl">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-700 font-bold text-sm">Total Weight</p>
@@ -334,51 +336,58 @@ const Freight: React.FC = () => {
               <Anchor className="text-slate-600" />
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Data Table with Tabs */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-        <div className="border-b border-slate-200 bg-slate-50 flex px-2">
-          <button
-            onClick={() => setActiveTab("AIR")}
-            className={`flex items-center px-6 py-3 text-sm font-bold border-b-2 transition ${
-              activeTab === "AIR"
-                ? "border-primary-600 text-primary-700 bg-white"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            <Plane size={16} className="mr-2" /> Air Freight
-          </button>
-          <button
-            onClick={() => setActiveTab("SEA")}
-            className={`flex items-center px-6 py-3 text-sm font-bold border-b-2 transition ${
-              activeTab === "SEA"
-                ? "border-primary-600 text-primary-700 bg-white"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            <Ship size={16} className="mr-2" /> Sea Freight
-          </button>
+      {loading ? (
+        <div className="flex flex-col justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <p className="mt-4 text-gray-600">Loading freight data...</p>
         </div>
-
-        <DataTable
-          data={shipments}
-          columns={columns}
-          onRowClick={(s) => triggerNav(`/admin/freight/${s.id}`)}
-          title={`Active ${activeTab === "AIR" ? "Air" : "Sea"} Manifests`}
-          searchPlaceholder={`Search ${activeTab} Shipments...`}
-          primaryAction={
+      ) : (
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+          <div className="border-b border-slate-200 bg-slate-50 flex px-2">
             <button
-              onClick={handleAdd}
-              className="flex items-center bg-slate-900 text-white px-4 py-2 rounded-md hover:bg-slate-800 transition shadow-sm font-medium text-sm"
+              onClick={() => setActiveTab("AIR")}
+              className={`flex items-center px-6 py-3 text-sm font-bold border-b-2 transition ${
+                activeTab === "AIR"
+                  ? "border-primary-600 text-primary-700 bg-white"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
+              }`}
             >
-              <Plus size={16} className="mr-2" />
-              New Manifest
+              <Plane size={16} className="mr-2" /> Air Freight
             </button>
-          }
-        />
-      </div>
+            <button
+              onClick={() => setActiveTab("SEA")}
+              className={`flex items-center px-6 py-3 text-sm font-bold border-b-2 transition ${
+                activeTab === "SEA"
+                  ? "border-primary-600 text-primary-700 bg-white"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <Ship size={16} className="mr-2" /> Sea Freight
+            </button>
+          </div>
+
+          <DataTable
+            data={shipments}
+            columns={columns}
+            onRowClick={(s) => triggerNav(`/admin/freight/${s.id}`)}
+            title={`Active ${activeTab === "AIR" ? "Air" : "Sea"} Manifests`}
+            searchPlaceholder={`Search ${activeTab} Shipments...`}
+            primaryAction={
+              <button
+                onClick={handleAdd}
+                className="flex items-center bg-slate-900 text-white px-4 py-2 rounded-md hover:bg-slate-800 transition shadow-sm font-medium text-sm"
+              >
+                <Plus size={16} className="mr-2" />
+                New Manifest
+              </button>
+            }
+          />
+        </div>
+      )}
 
       {/* ADD/EDIT FORM MODAL */}
       <Modal
