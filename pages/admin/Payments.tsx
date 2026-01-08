@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   CreditCard,
   Plus,
@@ -24,6 +24,12 @@ import {
 import useAuth from "@/api/auth/useAuth";
 import { AuthUser } from "@/api/types/auth";
 
+// Helper function for currency formatting
+const formatCurrency = (amount: number, currency: string | undefined) => {
+  const symbol = currency === "UGX" ? "UGX " : "$";
+  return `${symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
 interface LocalPayment extends ApiPayment {
   client: string;
   clientId?: string;
@@ -32,13 +38,14 @@ interface LocalPayment extends ApiPayment {
 }
 const Payments: React.FC = () => {
   const { showToast } = useToast();
-  const { listInvoices, recordInvoicePayment } = useInvoice();
+  const { listInvoices, recordInvoicePayment, getAllPayments } = useInvoice();
   const { fetchAllUsers } = useAuth();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [filter, setFilter] = useState("ALL");
   const [allInvoices, setAllInvoices] = useState<Invoice[]>([]);
   const [allUsers, setAllUsers] = useState<AuthUser[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [selectedClient, setSelectedClient] = useState<AuthUser | null>(null);
   const [clientSearch, setClientSearch] = useState("");
@@ -52,19 +59,75 @@ const Payments: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        const invoiceResponse = await listInvoices();
-        setAllInvoices(invoiceResponse.data || []);
+        const [invoiceResponse, allPaymentsResponse, usersResponse] =
+          await Promise.all([
+            listInvoices(),
+            getAllPayments(),
+            fetchAllUsers(),
+          ]);
 
-        const usersResponse = await fetchAllUsers();
-        setAllUsers(usersResponse.data || []);
+        const invoices = invoiceResponse.data || [];
+        const users = usersResponse.data || [];
+        const apiPayments = allPaymentsResponse.data.data || [];
+
+        setAllInvoices(invoices);
+        setAllUsers(users);
+
+        const transformedPayments: LocalPayment[] = apiPayments.map(
+          (p: ApiPayment) => {
+            return {
+              ...p,
+              client: p.user?.full_name || "N/A",
+              clientId: p.user?.id.toString(),
+              linkedInvoices: p.invoice ? [p.invoice.invoice_number] : [],
+              invoiceCurrency: p.invoice?.currency || "USD",
+            };
+          }
+        );
+
+        setPayments(transformedPayments);
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
         showToast("Failed to load initial data.", "error");
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [showToast]);
+
+  const totalReceivedThisMonth = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    return payments.reduce(
+      (acc, pay) => {
+        if (pay.status === "COMPLETED") {
+          const paidDate = new Date(pay.paid_at);
+          if (
+            paidDate.getMonth() === currentMonth &&
+            paidDate.getFullYear() === currentYear
+          ) {
+            const currency = pay.invoiceCurrency || "USD"; // Assume USD if null
+            if (currency === "UGX") {
+              acc.ugx += Number(pay.amount);
+            } else {
+              acc.usd += Number(pay.amount);
+            }
+          }
+        }
+        return acc;
+      },
+      { usd: 0, ugx: 0 }
+    );
+  }, [payments]);
+
+  const pendingPaymentsCount = useMemo(() => {
+    return payments.filter((p) => p.status === "PENDING").length;
+  }, [payments]);
 
   const triggerNav = (path: string) => {
     window.dispatchEvent(new CustomEvent("app-navigate", { detail: path }));
@@ -190,14 +253,20 @@ const Payments: React.FC = () => {
           <p className="text-slate-500 text-sm font-medium">
             Total Received (This Month)
           </p>
-          <p className="text-2xl font-bold text-green-600 mt-1">$1,800.00</p>
+          <p className="text-2xl font-bold text-green-600 mt-1">
+            {totalReceivedThisMonth.usd > 0 && formatCurrency(totalReceivedThisMonth.usd, "USD")}
+            {totalReceivedThisMonth.usd > 0 && totalReceivedThisMonth.ugx > 0 && " / "}
+            {totalReceivedThisMonth.ugx > 0 && formatCurrency(totalReceivedThisMonth.ugx, "UGX")}
+            {totalReceivedThisMonth.usd === 0 && totalReceivedThisMonth.ugx === 0 && formatCurrency(0, "USD")}
+          </p>
         </div>
         <div className="bg-white p-5 rounded-lg shadow-sm border border-slate-200">
           <p className="text-slate-500 text-sm font-medium">
             Pending Verification
           </p>
           <p className="text-2xl font-bold text-yellow-600 mt-1">
-            {payments.filter((p) => p.status === "PENDING").length} Payments
+            {pendingPaymentsCount}{" "}
+            {pendingPaymentsCount === 1 ? "Payment" : "Payments"}
           </p>
         </div>
       </div>
@@ -231,78 +300,93 @@ const Payments: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {payments.map((pay) => (
-              <tr
-                key={pay.id}
-                className="hover:bg-slate-50 transition cursor-pointer"
-                onClick={() => triggerNav(`/admin/payments/${pay.id}`)}
-              >
-                <td className="px-6 py-4 font-medium text-slate-900">
-                  <span className="text-primary-600 hover:underline">
-                    {pay.id}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600">
-                  {new Date(pay.paid_at).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 text-sm font-medium text-slate-800">
-                  {pay.client}
-                  {pay.clientId && (
-                    <div className="text-xs text-slate-400 font-normal">
-                      {pay.clientId}
-                    </div>
-                  )}
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-xs font-bold text-slate-600">
-                    {pay.method.replace("_", " ")}
-                  </div>
-                  <div className="text-xs text-slate-400 font-mono">
-                    {pay.transaction_reference}
-                  </div>
-                </td>
-                <td className="px-6 py-4 font-bold text-green-700">
-                  {pay.invoiceCurrency === "UGX" ? "UGX " : "$"}
-                  {pay.amount.toFixed(2)}
-                </td>
-                <td className="px-6 py-4 text-xs">
-                  {pay.linkedInvoices && pay.linkedInvoices.length > 0 ? (
-                    pay.linkedInvoices.map((inv) => (
-                      <span
-                        key={inv}
-                        className="block text-primary-600 hover:underline cursor-pointer"
-                      >
-                        {inv}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-slate-400 italic">Unallocated</span>
-                  )}
-                </td>
-                <td className="px-6 py-4">
-                  <StatusBadge status={pay.status || ""} />
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end space-x-2">
-                    <button
-                      className="text-slate-400 hover:text-primary-600"
-                      title="View Details"
-                    >
-                      <Eye size={18} />
-                    </button>
-                    {pay.status === "PENDING" && (
-                      <button
-                        onClick={(e) => handleVerify(e, pay.id)}
-                        className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center"
-                        title="Verify Payment"
-                      >
-                        <CheckCircle size={18} />
-                      </button>
-                    )}
-                  </div>
+            {loading ? (
+              <tr>
+                <td colSpan={8} className="text-center p-8 text-slate-500">
+                  Loading payments...
                 </td>
               </tr>
-            ))}
+            ) : (
+              payments.map((pay) => (
+                <tr
+                  key={pay.id}
+                  className="hover:bg-slate-50 transition cursor-pointer"
+                  onClick={() => triggerNav(`/admin/payments/${pay.id}`)}
+                >
+                  <td className="px-6 py-4 font-medium text-slate-900">
+                    <span className="text-primary-600 hover:underline">
+                      {pay.id}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-600">
+                    {new Date(pay.paid_at).toLocaleString("en-US", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                  </td>
+                  <td className="px-6 py-4 text-sm font-medium text-slate-800">
+                    {pay.client}
+                    {pay.user?.email && (
+                      <div className="text-xs text-slate-400 font-normal">
+                        {pay.user.email}
+                      </div>
+                    )}
+                    {pay.user?.phone && (
+                      <div className="text-xs text-slate-400 font-normal">
+                        {pay.user.phone}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-xs font-bold text-slate-600">
+                      {pay.method.replace("_", " ")}
+                    </div>
+                    <div className="text-xs text-slate-400 font-mono">
+                      {pay.transaction_reference}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 font-bold text-green-700">
+                    {formatCurrency(Number(pay.amount), pay.invoiceCurrency)}
+                  </td>
+                  <td className="px-6 py-4 text-xs">
+                    {pay.linkedInvoices && pay.linkedInvoices.length > 0 ? (
+                      pay.linkedInvoices.map((inv) => (
+                        <span
+                          key={inv}
+                          className="block text-primary-600 hover:underline cursor-pointer"
+                        >
+                          {inv}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-slate-400 italic">Unallocated</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <StatusBadge status={pay.status || ""} />
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        className="text-slate-400 hover:text-primary-600"
+                        title="View Details"
+                      >
+                        <Eye size={18} />
+                      </button>
+                      {pay.status === "PENDING" && (
+                        <button
+                          onClick={(e) => handleVerify(e, pay.id)}
+                          className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center"
+                          title="Verify Payment"
+                        >
+                          <CheckCircle size={18} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -393,14 +477,13 @@ const Payments: React.FC = () => {
               {availableInvoices.map((inv) => (
                 <option key={inv.id} value={inv.id}>
                   {inv.invoice_number} -{" "}
-                  {inv.currency === "UGX" ? "UGX " : "USD"}
-                  {inv.line_items
-                    .reduce(
-                      (acc, item) =>
-                        acc + Number(item.unit_price) * item.quantity,
+                  {formatCurrency(
+                    inv.line_items.reduce(
+                      (acc, item) => acc + Number(item.unit_price) * item.quantity,
                       0
-                    )
-                    .toFixed(2)}{" "}
+                    ),
+                    inv.currency
+                  )}{" "}
                   {inv.user?.full_name ? `(${inv.user.full_name})` : ""}
                 </option>
               ))}

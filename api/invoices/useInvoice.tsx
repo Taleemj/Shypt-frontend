@@ -108,6 +108,28 @@ const useInvoice = () => {
     return data;
   };
 
+  const getAllPayments = async (): Promise<{
+    data: {
+      data: Payment[];
+      current_page: string;
+      first_page_url: string;
+      from: number;
+      last_page: number;
+      last_page_url: string;
+      links: any[];
+      next_page_url: string | null;
+      path: string;
+      per_page: number;
+      prev_page_url: string | null;
+      to: number;
+      total: number;
+    };
+    message: string;
+  }> => {
+    const { data } = await client.get(`/api/billing/payments`);
+    return data;
+  };
+
   const deleteInvoicePayment = async (
     paymentId: number
   ): Promise<MessageResponse> => {
@@ -129,6 +151,7 @@ const useInvoice = () => {
     restoreInvoiceItem,
     recordInvoicePayment,
     deleteInvoicePayment,
+    getAllPayments,
   };
 };
 

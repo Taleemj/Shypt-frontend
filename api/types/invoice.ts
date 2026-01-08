@@ -17,10 +17,15 @@ export interface Payment {
   invoice_id: number;
   amount: number;
   method: string;
+  assisted_shopping_id: number | null;
+  invoice: Invoice;
+  assisted_Shopping: {};
   transaction_reference: string | null;
   gateway_reference: string | null;
   status: "COMPLETED" | "PENDING" | "FAILED" | null;
   paid_at: string;
+  user: AuthUser;
+  user_id: number;
   created_at: string;
   updated_at: string;
 }
