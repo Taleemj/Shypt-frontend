@@ -27,25 +27,28 @@ const STATUS_FLOW = [
     label: "Received at Origin Warehouse",
     icon: PackageIcon,
   },
-  {
-    status: "CONSOLIDATED",
-    label: "Consolidated for Shipment",
-    icon: PackageIcon,
-  },
-  { status: "DISPATCHED", label: "Departed from Origin", icon: Plane },
-  { status: "IN_TRANSIT", label: "In Transit to Destination", icon: Plane },
-  { status: "ARRIVED", label: "Arrived at Destination", icon: MapPin },
-  {
-    status: "READY_FOR_RELEASE",
-    label: "Customs Cleared & Ready",
-    icon: CheckCircle,
-  },
-  { status: "RELEASED", label: "Released from Warehouse", icon: CheckCircle },
-  { status: "DELIVERED", label: "Delivered", icon: CheckCircle },
-  { status: "DECLINED", label: "Declined", icon: XCircle, terminal: true },
+  // {
+  //   status: "CONSOLIDATED",
+  //   label: "Consolidated for Shipment",
+  //   icon: PackageIcon,
+  // },
+  // { status: "DISPATCHED", label: "Departed from Origin", icon: Plane },
+  // { status: "IN_TRANSIT", label: "In Transit to Destination", icon: Plane },
+  // { status: "ARRIVED", label: "Arrived at Destination", icon: MapPin },
+  // {
+  //   status: "READY_FOR_RELEASE",
+  //   label: "Customs Cleared & Ready",
+  //   icon: CheckCircle,
+  // },
+  // { status: "RELEASED", label: "Released from Warehouse", icon: CheckCircle },
+  // { status: "DELIVERED", label: "Delivered", icon: CheckCircle },
+  // { status: "DECLINED", label: "Declined", icon: XCircle, terminal: true },
 ];
 
-const DeliveryRequestDetails: React.FC<OrderDetailsProps> = ({ id, onBack }) => {
+const DeliveryRequestDetails: React.FC<OrderDetailsProps> = ({
+  id,
+  onBack,
+}) => {
   const { showToast } = useToast();
   const { getCargoDeclaration } = useCargo();
 
