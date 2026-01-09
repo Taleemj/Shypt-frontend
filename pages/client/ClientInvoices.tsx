@@ -42,7 +42,7 @@ const ClientInvoices: React.FC = () => {
 
         const description = (inv: ApiInvoice) => {
           // @ts-ignore
-          if (inv.order) return `Order #${inv.order.order_code}`;
+          // if (inv.order) return `Order #${inv.order.tracking_number}`;
           if (inv.line_items.length > 0) return inv.line_items[0].description;
           return inv.type.replace(/_/g, " ");
         };
@@ -165,15 +165,21 @@ const ClientInvoices: React.FC = () => {
       className: "text-right",
       accessor: (i) =>
         i.status === "PENDING" || i.status === "UNPAID" ? (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              triggerNav(`/client/invoices/${i.original_id}`);
-            }}
-            className="bg-primary-600 text-white px-3 py-1.5 rounded text-xs hover:bg-primary-700 shadow-sm flex items-center ml-auto font-medium transition"
+          <a
+            href={`${import.meta.env.VITE_API_URL}/invoice_payment/${i.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
           >
-            <CreditCard size={12} className="mr-1.5" /> Pay Now
-          </button>
+            <button
+              // onClick={(e) => {
+              //   e.stopPropagation();
+              //   // triggerNav(`/client/invoices/${i.original_id}`);
+              // }}
+              className="bg-primary-600 text-white px-3 py-1.5 rounded text-xs hover:bg-primary-700 shadow-sm flex items-center ml-auto font-medium transition"
+            >
+              <CreditCard size={12} className="mr-1.5" /> Pay Now
+            </button>
+          </a>
         ) : (
           <button
             onClick={(e) => {
