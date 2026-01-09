@@ -25,7 +25,7 @@ export interface Consolidation {
   status?: "OPEN" | "FINALIZED" | "DEPARTED" | "ARRIVED";
   mawb_number: string;
   package_count: number;
-  total_weight: string; // Keeping as string due to "0.00" format in example
+  total_weight: number;
   created_by: number;
   finalized_at?: string;
   departed_at?: string;

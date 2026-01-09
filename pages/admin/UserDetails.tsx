@@ -117,7 +117,8 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userId, onBack }) => {
             <span className="font-mono bg-slate-100 px-1 rounded mr-2">
               CL-{user.id}
             </span>
-            {user.city}, {user.country}
+            {/* {user.city}, {user.country} */}
+            {user.address}
           </p>
         </div>
         <div className="flex-1"></div>
@@ -128,9 +129,13 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userId, onBack }) => {
               balance < 0 ? "text-red-600" : "text-green-600"
             }`}
           >
-            {balance < 0
+            {/* {balance < 0
               ? `-$${Math.abs(balance).toFixed(2)}`
-              : `$${balance.toFixed(2)}`}
+              : `$${balance.toFixed(2)}`} */}
+            {balance.toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </p>
         </div>
         <StatusBadge status={user.status.toUpperCase()} />

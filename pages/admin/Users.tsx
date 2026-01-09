@@ -244,9 +244,13 @@ const Users: React.FC = () => {
             user.balance < 0 ? "text-red-600" : "text-green-600"
           }`}
         >
-          {user.balance < 0
+          {/* {user.balance < 0
             ? `-${Math.abs(user.balance).toFixed(2)}`
-            : `${user.balance.toFixed(2)}`}
+            : `${user.balance.toFixed(2)}`} */}
+          {user.balance.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
         </span>
       ),
     },

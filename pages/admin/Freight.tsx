@@ -110,7 +110,7 @@ const Freight: React.FC = () => {
       transport_mode: activeTab,
       container_flight_number: formData.get("flight_vessel") as string,
       departure_date: formData.get("etd") as string,
-      total_weight: formData.get("weight") as string,
+      total_weight: Number(formData.get("weight") as string),
       status: formData.get("status") as
         | "OPEN"
         | "FINALIZED"
@@ -448,9 +448,7 @@ const Freight: React.FC = () => {
                 type="number"
                 step="0.01"
                 defaultValue={
-                  editingShipment
-                    ? parseFloat(editingShipment.total_weight)
-                    : ""
+                  editingShipment ? editingShipment.total_weight : ""
                 }
                 className="w-full border border-slate-300 p-2 rounded bg-white text-slate-900 focus:ring-2 focus:ring-primary-500 outline-none"
               />
