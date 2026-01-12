@@ -65,6 +65,7 @@ import ClientSupport from "./pages/client/ClientSupport";
 import ClientTicketDetails from "./pages/client/TicketDetails";
 import ClientNotifications from "./pages/client/ClientNotifications";
 import ClientSettings from "./pages/client/ClientSettings";
+import ShippingAddresses from "./pages/client/ShippingAddresses";
 
 const AppRoutes: React.FC = () => {
   const { user, isAuthenticated } = useAuthContext();
@@ -168,6 +169,7 @@ const AppRoutes: React.FC = () => {
         <Route path="support/:id" element={<ClientTicketDetailsWrapper />} />
         <Route path="notifications" element={<ClientNotifications />} />
         <Route path="settings" element={<ClientSettings />} />
+        <Route path="shipping-addresses" element={<ShippingAddresses />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" />} />
