@@ -139,6 +139,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <Calculator size={20} />,
     },
     {
+      name: "Shipping Addresses",
+      path: "/client/shipping-addresses",
+      icon: <Map size={20} />,
+    },
+    {
       name: "Invoices",
       path: "/client/invoices",
       icon: <FileText size={20} />,
