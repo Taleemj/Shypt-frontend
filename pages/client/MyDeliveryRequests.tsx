@@ -298,6 +298,7 @@ const MyDeliveryRequests: React.FC = () => {
                   <select
                     name="courier"
                     defaultValue=""
+                    required
                     className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl bg-slate-50 text-sm focus:ring-2 focus:ring-primary-500 outline-none"
                   >
                     <option value="" disabled>
