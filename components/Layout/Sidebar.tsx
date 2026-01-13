@@ -128,7 +128,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       path: "/client/requests",
       icon: <ClipboardList size={20} />,
     },
-
+    {
+      name: "Document Center",
+      path: "/client/document-center",
+      icon: <FileText />,
+    },
     {
       name: "Rate Calculator",
       path: "/client/calculator",
