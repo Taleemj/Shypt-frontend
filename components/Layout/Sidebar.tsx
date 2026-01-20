@@ -58,7 +58,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       name: "Shop For Me",
       path: "/admin/shopping",
       icon: <ShoppingCart size={20} />,
-    }, // Moved here
+    },
+    {
+      name: "Last Mile Delivery",
+      path: "/admin/delivery",
+      icon: <Truck size={20} />,
+    },
 
     // Operations
     {
@@ -86,12 +91,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       path: "/admin/inventory",
       icon: <Box size={20} />,
     },
-    {
-      name: "Last Mile Delivery",
-      path: "/admin/delivery",
-      icon: <Map size={20} />,
-    },
-
     {
       name: "Expenses",
       path: "/admin/expenses",

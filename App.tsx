@@ -84,7 +84,7 @@ const AppRoutes: React.FC = () => {
     return () =>
       window.removeEventListener(
         "app-navigate",
-        handleNavigate as EventListener
+        handleNavigate as EventListener,
       );
   }, [navigate, location.pathname]);
 
@@ -309,7 +309,10 @@ const DeliveryDetailsWrapper = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   return (
-    <DeliveryDetails id={id || ""} onBack={() => navigate("/admin/delivery")} />
+    <DeliveryDetails
+      deliveryId={id || ""}
+      onBack={() => navigate("/admin/delivery")}
+    />
   );
 };
 const TicketDetailsWrapper = () => {
