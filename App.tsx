@@ -47,6 +47,7 @@ import TicketDetails from "./pages/admin/TicketDetails";
 import Reports from "./pages/admin/Reports";
 import AdminClientOrderDetails from "./pages/admin/AdminClientOrderDetails";
 import Settings from "./pages/admin/Settings";
+import AdminDocumentCenter from "./pages/admin/AdminDocumentCenter";
 
 // CLIENT IMPORTS
 import ClientDashboard from "./pages/client/ClientDashboard";
@@ -66,9 +67,9 @@ import ClientTicketDetails from "./pages/client/TicketDetails";
 import ClientNotifications from "./pages/client/ClientNotifications";
 import ClientSettings from "./pages/client/ClientSettings";
 import ShippingAddresses from "./pages/client/ShippingAddresses";
+import DocumentCenter from "./pages/client/DocumentCenter";
 
 const AppRoutes: React.FC = () => {
-  const { user, isAuthenticated } = useAuthContext();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -90,22 +91,7 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-      <Route
-        path="/"
-        element={
-          isAuthenticated ? (
-            <Navigate
-              to={
-                user?.user_type === "super_user" || user?.user_type === "staff"
-                  ? "/admin/dashboard"
-                  : "/client/dashboard"
-              }
-            />
-          ) : (
-            <Landing />
-          )
-        }
-      />
+      <Route path="/" element={<Landing />} />
 
       {/* Admin Routes */}
       <Route path="/admin" element={<ProtectedRoute role="ADMIN" />}>
@@ -146,6 +132,7 @@ const AppRoutes: React.FC = () => {
         <Route path="tickets/:id" element={<TicketDetailsWrapper />} />
         <Route path="reports" element={<Reports />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="document-center" element={<AdminDocumentCenter />} />
       </Route>
 
       {/* Client Routes */}
@@ -170,6 +157,7 @@ const AppRoutes: React.FC = () => {
         <Route path="notifications" element={<ClientNotifications />} />
         <Route path="settings" element={<ClientSettings />} />
         <Route path="shipping-addresses" element={<ShippingAddresses />} />
+        <Route path="document-center" element={<DocumentCenter />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" />} />

@@ -16,6 +16,7 @@ import {
   Map,
   Store,
   MessageSquare,
+  BookOpenCheck,
   Box,
   Calculator,
   X,
@@ -85,6 +86,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <CreditCard size={20} />,
     },
     { name: "Settings", path: "/admin/settings", icon: <Settings size={20} /> },
+    {
+      name: "Document Center",
+      path: "/admin/document-center",
+      icon: <BookOpenCheck size={20} />,
+    },
 
     {
       name: "Inventory Control",
@@ -130,7 +136,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     {
       name: "Document Center",
       path: "/client/document-center",
-      icon: <FileText />,
+      icon: <BookOpenCheck />,
     },
     {
       name: "Rate Calculator",

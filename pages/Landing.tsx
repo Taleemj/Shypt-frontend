@@ -35,7 +35,7 @@ const Landing: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [trackId, setTrackId] = useState("");
 
-  const { login: loginContext } = useAuthContext();
+  const { login: loginContext, user, isAuthenticated } = useAuthContext();
   const { login: apiLogin, register: apiRegister } = useAuth();
   const { getOrderByTrackingNumber } = useOrders();
 
@@ -49,7 +49,7 @@ const Landing: React.FC = () => {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [authStep, setAuthStep] = useState<"CREDENTIALS" | "OTP">(
-    "CREDENTIALS"
+    "CREDENTIALS",
   );
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -110,7 +110,7 @@ const Landing: React.FC = () => {
       // Sort history to be safe, newest first.
       const sortedHistory = [...order.status_history].sort(
         (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
 
       const timeline = ORDER_STATUS_FLOW.map((status, index) => {
@@ -149,7 +149,7 @@ const Landing: React.FC = () => {
     } catch (err: any) {
       console.error("eorrored", err);
       setTrackingError(
-        err.response?.data?.message || "Tracking number not found."
+        err.response?.data?.message || "Tracking number not found.",
       );
     } finally {
       setIsTracking(false);
@@ -211,7 +211,7 @@ const Landing: React.FC = () => {
     } catch (err: any) {
       setError(
         err.response?.data?.message ||
-          "Login failed. Please check your credentials."
+          "Login failed. Please check your credentials.",
       );
     } finally {
       setIsLoading(false);
@@ -243,7 +243,7 @@ const Landing: React.FC = () => {
       handleNavigate("/client/dashboard");
     } catch (err: any) {
       setError(
-        err.response?.data?.message || "Registration failed. Please try again."
+        err.response?.data?.message || "Registration failed. Please try again.",
       );
     } finally {
       setIsLoading(false);
@@ -359,19 +359,46 @@ const Landing: React.FC = () => {
                 FAQ
               </a>
 
-              <div className="flex items-center space-x-3 ml-6 border-l border-slate-200 pl-6">
-                <button
-                  onClick={() => openLogin("ADMIN")}
-                  className="text-sm font-medium text-slate-500 hover:text-slate-900 flex items-center"
-                >
-                  <Lock size={14} className="mr-1" /> Staff Access
-                </button>
-                <button
-                  onClick={() => openLogin("CLIENT")}
-                  className="px-5 py-2.5 bg-slate-900 text-white text-sm font-bold rounded-full hover:bg-slate-800 transition shadow-lg shadow-slate-900/20"
-                >
-                  Client Portal
-                </button>
+              <div className="flex items-center space-x-4 ml-6 border-l border-slate-200 pl-6">
+                {isAuthenticated && user ? (
+                  <>
+                    <button
+                      onClick={() =>
+                        handleNavigate(
+                          user.user_type === "user"
+                            ? "/client/dashboard"
+                            : "/admin/dashboard",
+                        )
+                      }
+                      className="px-5 py-2.5 bg-slate-900 text-white text-sm font-bold rounded-full hover:bg-slate-800 transition shadow-lg shadow-slate-900/20"
+                    >
+                      Dashboard
+                    </button>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center">
+                        <User size={16} className="text-slate-600" />
+                      </div>
+                      <span className="text-sm font-medium text-slate-700">
+                        {user.full_name.split(" ")[0]}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => openLogin("ADMIN")}
+                      className="text-sm font-medium text-slate-500 hover:text-slate-900 flex items-center"
+                    >
+                      <Lock size={14} className="mr-1" /> Staff Access
+                    </button>
+                    <button
+                      onClick={() => openLogin("CLIENT")}
+                      className="px-5 py-2.5 bg-slate-900 text-white text-sm font-bold rounded-full hover:bg-slate-800 transition shadow-lg shadow-slate-900/20"
+                    >
+                      Client Portal
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -419,18 +446,47 @@ const Landing: React.FC = () => {
               FAQ
             </a>
             <hr />
-            <button
-              onClick={() => openLogin("CLIENT")}
-              className="w-full py-3 bg-primary-600 text-white rounded-lg font-bold"
-            >
-              Client Login
-            </button>
-            <button
-              onClick={() => openLogin("ADMIN")}
-              className="w-full py-3 bg-slate-100 text-slate-700 rounded-lg font-bold"
-            >
-              Staff Login
-            </button>
+            {isAuthenticated && user ? (
+              <>
+                <div className="flex items-center space-x-3 p-2 bg-slate-50 rounded-lg">
+                  <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
+                    <User size={20} className="text-slate-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-800">{user.full_name}</p>
+                    <p className="text-xs text-slate-500">{user.email}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    handleNavigate(
+                      user.user_type === "user"
+                        ? "/client/dashboard"
+                        : "/admin/dashboard",
+                    );
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full py-3 bg-slate-900 text-white rounded-lg font-bold"
+                >
+                  Go to Dashboard
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => openLogin("CLIENT")}
+                  className="w-full py-3 bg-primary-600 text-white rounded-lg font-bold"
+                >
+                  Client Login
+                </button>
+                <button
+                  onClick={() => openLogin("ADMIN")}
+                  className="w-full py-3 bg-slate-100 text-slate-700 rounded-lg font-bold"
+                >
+                  Staff Login
+                </button>
+              </>
+            )}
           </div>
         )}
       </nav>
@@ -790,10 +846,10 @@ const Landing: React.FC = () => {
                         {c === "US"
                           ? "USA"
                           : c === "UK"
-                          ? "UK"
-                          : c === "CN"
-                          ? "China"
-                          : "Dubai"}
+                            ? "UK"
+                            : c === "CN"
+                              ? "China"
+                              : "Dubai"}
                       </button>
                     ))}
                   </div>
@@ -1458,8 +1514,8 @@ const Landing: React.FC = () => {
                         event.completed
                           ? "bg-green-500 border-green-500"
                           : event.current
-                          ? "bg-blue-500 border-blue-500"
-                          : "bg-white border-slate-300"
+                            ? "bg-blue-500 border-blue-500"
+                            : "bg-white border-slate-300"
                       }`}
                     ></div>
 
