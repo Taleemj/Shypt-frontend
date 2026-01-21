@@ -35,7 +35,7 @@ import { CreateCargoDeclarationPayload } from "@/api/types/cargo";
 const AssistedShopping: React.FC = () => {
   const { showToast } = useToast();
   const [selectedReq, setSelectedReq] = useState<AssistedShoppingItem | null>(
-    null
+    null,
   );
   const [modalMode, setModalMode] = useState<
     "QUOTE" | "PURCHASE" | "REJECT" | null
@@ -119,7 +119,7 @@ const AssistedShopping: React.FC = () => {
       const total =
         selectedReq.quote_items?.reduce(
           (acc, q) => acc + q.unit_price * q.quantity,
-          0
+          0,
         ) || 0;
       setDeclaredValue(total.toFixed(2));
     } else {
@@ -134,7 +134,7 @@ const AssistedShopping: React.FC = () => {
   const handleOpenModal = (
     req: AssistedShoppingItem,
     mode: typeof modalMode,
-    e: React.MouseEvent
+    e: React.MouseEvent,
   ) => {
     e.stopPropagation();
     setSelectedReq(req);
@@ -232,9 +232,8 @@ const AssistedShopping: React.FC = () => {
 
     try {
       // 1. Create the cargo declaration
-      const declarationResponse = await createCargoDeclaration(
-        declarationPayload
-      );
+      const declarationResponse =
+        await createCargoDeclaration(declarationPayload);
       showToast("Cargo Declaration created successfully!", "success");
 
       // 2. Upload files if any
@@ -250,13 +249,13 @@ const AssistedShopping: React.FC = () => {
         try {
           await uploadCargoDeclarationFiles(
             declarationResponse.data.id,
-            uploadFormData
+            uploadFormData,
           );
           showToast("Invoice uploaded successfully.", "success");
         } catch (uploadError) {
           showToast(
             "Declaration was created, but failed to upload the invoice.",
-            "warning"
+            "warning",
           );
         }
       }
@@ -275,7 +274,7 @@ const AssistedShopping: React.FC = () => {
       await updateAssistedShopping(selectedReq.id, updatePayload);
       showToast(
         "Procurement details saved. Item marked as Purchased.",
-        "success"
+        "success",
       );
 
       setModalMode(null);
@@ -295,20 +294,24 @@ const AssistedShopping: React.FC = () => {
           if (!dateString) return "N/A";
           try {
             const date = new Date(dateString);
-            return new Intl.DateTimeFormat('en-US', { 
-              year: 'numeric', 
-              month: 'short', 
-              day: 'numeric', 
-              hour: 'numeric', 
-              minute: 'numeric',
-              hour12: true 
+            return new Intl.DateTimeFormat("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              hour12: true,
             }).format(date);
           } catch (e) {
             console.error("Error formatting date:", e);
-            return dateString; 
+            return dateString;
           }
         };
-        return <span className="text-sm text-slate-600">{formatDateTime(req.created_at)}</span>;
+        return (
+          <span className="text-sm text-slate-600">
+            {formatDateTime(req.created_at)}
+          </span>
+        );
       },
       sortKey: "created_at",
       sortable: true,
@@ -373,7 +376,7 @@ const AssistedShopping: React.FC = () => {
       accessor: (req) => {
         const total = req.quote_items?.reduce(
           (acc, q) => acc + q.unit_price * q.quantity,
-          0
+          0,
         );
         return total ? formatUgx(total) : "-";
       },
@@ -600,20 +603,20 @@ const AssistedShopping: React.FC = () => {
                     className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl bg-white text-sm font-mono focus:ring-2 focus:ring-primary-500 outline-none"
                   />
                 </div>
-                            </div>
-                             <div>
-                              <label className="block text-xs font-bold text-slate-700 mb-2">
-                                Retailer Order ID <span className="text-red-500">*</span>
-                              </label>
-                              <input
-                                required
-                                name="retailer_ref"
-                                defaultValue={selectedReq?.retailer_ref || ""}
-                                placeholder="e.g. AMZN-114-2233..."
-                                className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900 font-mono"
-                              />
-                            </div>
-                          </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">
+                  Retailer Order ID <span className="text-red-500">*</span>
+                </label>
+                <input
+                  required
+                  name="retailer_ref"
+                  defaultValue={selectedReq?.retailer_ref || ""}
+                  placeholder="e.g. AMZN-114-2233..."
+                  className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900 font-mono"
+                />
+              </div>
+            </div>
             <div className="space-y-6">
               <label className="block text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
                 3. Cargo Details
@@ -740,7 +743,8 @@ const AssistedShopping: React.FC = () => {
                       onChange={() => setComplianceAgreed(!complianceAgreed)}
                     />
                     <span className="text-[11px] text-slate-300 font-medium">
-                      I confirm these details are accurate for URA Customs and
+                      I confirm these details are accurate for customs
+                      declaration, export/import compliance, insurance, and
                       acknowledge the prohibited items list.
                     </span>
                   </label>

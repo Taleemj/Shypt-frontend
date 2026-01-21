@@ -45,7 +45,7 @@ const MyDeliveryRequests: React.FC = () => {
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"MY_ORDERS" | "SHOP_FOR_ME">(
-    "MY_ORDERS"
+    "MY_ORDERS",
   );
 
   // Form State
@@ -97,7 +97,7 @@ const MyDeliveryRequests: React.FC = () => {
   };
 
   const handleCreateDeclaration = async (
-    e: React.FormEvent<HTMLFormElement>
+    e: React.FormEvent<HTMLFormElement>,
   ) => {
     e.preventDefault();
 
@@ -127,6 +127,16 @@ const MyDeliveryRequests: React.FC = () => {
       insured: isInsured,
     };
 
+    // New validation for insurance
+    if (isInsured && (!selectedFiles || selectedFiles.length === 0)) {
+      showToast(
+        "Commercial invoice is required for insured packages.",
+        "error",
+      );
+      setIsSubmitting(false); // Make sure to stop submission
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const response = await createCargoDeclaration(payload);
@@ -143,7 +153,7 @@ const MyDeliveryRequests: React.FC = () => {
         } catch (uploadError) {
           showToast(
             "Declaration was created, but failed to upload the invoice.",
-            "warning"
+            "warning",
           );
         }
       }
@@ -450,8 +460,8 @@ const MyDeliveryRequests: React.FC = () => {
                 <strong>
                   Liquids, Batteries (loose), Explosives, or Narcotics
                 </strong>
-                . Undeclared prohibited items will result in a 00 compliance
-                fine and cargo seizure.
+                . Undeclared electronics, restricted and prohibited items will
+                result in a $100 compliance fine and cargo seizure.
               </p>
 
               <div className="flex flex-col md:flex-row gap-6">
@@ -461,7 +471,8 @@ const MyDeliveryRequests: React.FC = () => {
                     className="text-slate-500 group-hover:text-primary-400 mb-2"
                   />
                   <span className="text-[10px] font-bold uppercase tracking-tight">
-                    Upload Vendor Invoice
+                    Upload Commercial Invoice{" "}
+                    {isInsured && <span className="text-red-500">*</span>}
                   </span>
                   <span className="text-[9px] text-slate-500 mt-1">
                     {selectedFiles && selectedFiles.length > 0
@@ -471,12 +482,13 @@ const MyDeliveryRequests: React.FC = () => {
                   <input
                     type="file"
                     className="hidden"
+                    required={isInsured} // Conditionally required
                     onChange={(e) => setSelectedFiles(e.target.files)}
                   />
                 </label>
 
                 <div className="flex flex-col w-[40%]">
-                  <div className="flex-1 flex items-center">
+                  <div className="flex-1 flex items-center mb-2">
                     <label className="flex items-start gap-3 cursor-pointer group">
                       <div
                         className={`mt-0.5 w-6 h-6 rounded-md border-2 transition-all flex items-center justify-center flex-shrink-0 ${
@@ -496,7 +508,13 @@ const MyDeliveryRequests: React.FC = () => {
                         onChange={() => setIsInsured(!isInsured)}
                       />
                       <span className="text-[11px] text-slate-300 font-medium">
-                        Insured?
+                        Would you like to insure this package?
+                        {isInsured && (
+                          <span className="text-[9px] text-slate-400 mt-1">
+                            *Insurance applies only after warehouse
+                            verification.
+                          </span>
+                        )}
                       </span>
                     </label>
                   </div>
@@ -521,7 +539,8 @@ const MyDeliveryRequests: React.FC = () => {
                         onChange={() => setComplianceAgreed(!complianceAgreed)}
                       />
                       <span className="text-[11px] text-slate-300 font-medium">
-                        I confirm these details are accurate for URA Customs and
+                        I confirm these details are accurate for customs
+                        declaration, export/import compliance, insurance, and
                         acknowledge the prohibited items list.
                       </span>
                     </label>

@@ -39,6 +39,7 @@ const CargoDeclarations: React.FC = () => {
     createCargoDeclaration,
     updateCargoDeclaration,
     deleteCargoDeclaration,
+    uploadCargoDeclarationFiles,
   } = useCargo();
   const { fetchWareHouseLocations } = useWareHouse();
   const { fetchAllUsers } = useAuth();
@@ -62,6 +63,7 @@ const CargoDeclarations: React.FC = () => {
   const [complianceAgreed, setComplianceAgreed] = useState(false);
   const [isInsured, setIsInsured] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
 
   // Bulk Action State
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -151,14 +153,14 @@ const CargoDeclarations: React.FC = () => {
         if (!complianceAgreed) {
           showToast(
             "You must acknowledge the prohibited items policy.",
-            "error"
+            "error",
           );
           return;
         }
         if (Number(declaredValue) <= 0) {
           showToast(
             "Please provide a valid declared value for customs.",
-            "error"
+            "error",
           );
           return;
         }
@@ -168,7 +170,7 @@ const CargoDeclarations: React.FC = () => {
         }
 
         const selectedWh = warehouses.find(
-          (wh) => wh.code === selectedWarehouse
+          (wh) => wh.code === selectedWarehouse,
         );
         if (!selectedWh) {
           showToast("Please select a destination warehouse.", "error");
@@ -186,8 +188,33 @@ const CargoDeclarations: React.FC = () => {
           insured: isInsured,
         };
 
-        await createCargoDeclaration(payload);
+        if (isInsured && (!selectedFiles || selectedFiles.length === 0)) {
+          showToast(
+            "Commercial invoice is required for insured packages.",
+            "error",
+          );
+          setIsSubmitting(false);
+          return;
+        }
+
+        const response = await createCargoDeclaration(payload);
         showToast("Client Shipment created successfully!", "success");
+
+        if (selectedFiles && selectedFiles.length > 0 && response.data.id) {
+          const uploadFormData = new FormData();
+          for (let i = 0; i < selectedFiles.length; i++) {
+            uploadFormData.append("files[]", selectedFiles[i]);
+          }
+          try {
+            await uploadCargoDeclarationFiles(response.data.id, uploadFormData);
+            showToast("Invoice uploaded successfully.", "success");
+          } catch (uploadError) {
+            showToast(
+              "Declaration was created, but failed to upload the invoice.",
+              "warning",
+            );
+          }
+        }
       } else if (formMode === "EDIT" && editingDeclaration) {
         const payload: UpdateCargoDeclarationPayload = {
           internal_curier: formData.get("internal_curier") as string,
@@ -210,7 +237,7 @@ const CargoDeclarations: React.FC = () => {
     } catch (error) {
       showToast(
         `Failed to ${formMode === "ADD" ? "create" : "update"} request.`,
-        "error"
+        "error",
       );
     } finally {
       setIsSubmitting(false);
@@ -404,7 +431,7 @@ const CargoDeclarations: React.FC = () => {
             checked={editingDeclaration?.is_insured || false}
             onChange={(e) =>
               setEditingDeclaration((prev) =>
-                prev ? { ...prev, is_insured: e.target.checked } : null
+                prev ? { ...prev, is_insured: e.target.checked } : null,
               )
             }
             className="mt-0.5 w-4 h-4 rounded-md border-2 transition-all flex items-center justify-center flex-shrink-0"
@@ -622,8 +649,8 @@ const CargoDeclarations: React.FC = () => {
             <strong>
               Liquids, Batteries (loose), Explosives, or Narcotics
             </strong>
-            . Undeclared prohibited items will result in a $100 compliance fine
-            and cargo seizure.
+            . Undeclared electronics, restricted and prohibited items will
+            result in a $100 compliance fine and cargo seizure.
           </p>
 
           <div className="flex flex-col md:flex-row gap-6">
@@ -632,36 +659,57 @@ const CargoDeclarations: React.FC = () => {
                 size={24}
                 className="text-slate-500 group-hover:text-primary-400 mb-2"
               />
+
               <span className="text-[10px] font-bold uppercase tracking-tight">
-                Upload Vendor Invoice
+                Upload Commercial Invoice{" "}
+                {isInsured && <span className="text-red-500">*</span>}
               </span>
+
               <span className="text-[9px] text-slate-500 mt-1">
-                PDF or JPG only
+                {selectedFiles && selectedFiles.length > 0
+                  ? selectedFiles[0].name
+                  : "PDF or JPG only"}
               </span>
-              <input type="file" className="hidden" />
+
+              <input
+                type="file"
+                className="hidden"
+                required={isInsured}
+                onChange={(e) => setSelectedFiles(e.target.files)}
+              />
             </label>
-            <div className="flex flex-col w-[40%]">
-              <div className="flex-1 flex items-center">
-                <label className="flex items-start gap-3 cursor-pointer group">
-                  <div
-                    className={`mt-0.5 w-6 h-6 rounded-md border-2 transition-all flex items-center justify-center flex-shrink-0 ${
-                      isInsured
-                        ? "bg-primary-500 border-primary-500"
-                        : "border-slate-600 bg-slate-800 group-hover:border-slate-400"
-                    }`}
-                  >
-                    {isInsured && <Check size={14} className="text-white" />}
-                  </div>
-                  <input
-                    type="checkbox"
-                    className="hidden"
-                    checked={isInsured}
-                    onChange={() => setIsInsured(!isInsured)}
-                  />
-                  <span className="text-[11px] text-slate-300 font-medium">
-                    insured?
-                  </span>
-                </label>
+
+            <div className="flex flex-col w-[40%">
+              <div className="flex-1 flex items-center mb-2">
+                <div>
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <div
+                      className={`mt-0.5 w-6 h-6 rounded-md border-2 transition-all flex items-center justify-center flex-shrink-0 ${
+                        isInsured
+                          ? "bg-primary-500 border-primary-500"
+                          : "border-slate-600 bg-slate-800 group-hover:border-slate-400"
+                      }`}
+                    >
+                      {isInsured && <Check size={14} className="text-white" />}
+                    </div>
+
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={isInsured}
+                      onChange={() => setIsInsured(!isInsured)}
+                    />
+
+                    <span className="text-[11px] text-slate-300 font-medium">
+                      Would you like to insure this package?
+                      {isInsured && (
+                        <span className="text-[9px] text-slate-400 mt-1">
+                          *Insurance applies only after warehouse verification.
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                </div>
               </div>
 
               <div className="flex-1 flex items-center">
@@ -677,12 +725,14 @@ const CargoDeclarations: React.FC = () => {
                       <Check size={14} className="text-white" />
                     )}
                   </div>
+
                   <input
                     type="checkbox"
                     className="hidden"
                     checked={complianceAgreed}
                     onChange={() => setComplianceAgreed(!complianceAgreed)}
                   />
+
                   <span className="text-[11px] text-slate-300 font-medium">
                     I confirm these details are accurate for URA Customs and
                     acknowledge the prohibited items list.
