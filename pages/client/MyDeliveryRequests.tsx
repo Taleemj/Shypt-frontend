@@ -456,10 +456,19 @@ const MyDeliveryRequests: React.FC = () => {
                 Compliance
               </h4>
               <p className="text-[11px] text-slate-300 leading-relaxed mb-6">
-                By declaring this cargo, you certify that it contains no{" "}
-                <strong>
-                  Liquids, Batteries (loose), Explosives, or Narcotics
-                </strong>
+                Please ensure your declaration is accurate. Prohibited items
+                (e.g., explosives, narcotics) are strictly forbidden. Restricted
+                items (e.g., liquids, batteries, chemicals) may be allowed if
+                properly declared and accompanied by necessary documentation.
+                For a complete list and details, please refer to our{" "}
+                <a
+                  href="/client/document-center"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-primary-300 hover:underline"
+                >
+                  Prohibited & Restricted Items Policy
+                </a>
                 . Undeclared electronics, restricted and prohibited items will
                 result in a $100 compliance fine and cargo seizure.
               </p>
