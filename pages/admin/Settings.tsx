@@ -31,10 +31,7 @@ import { useToast } from "../../context/ToastContext";
 import Modal from "../../components/UI/Modal";
 import { DataTable, Column } from "../../components/UI/DataTable";
 import useWareHouse from "../../api/warehouse/useWareHouse";
-import {
-  WareHouseLocation,
-  WarehouseRack,
-} from "../../api/types/warehouse";
+import { WareHouseLocation, WarehouseRack } from "../../api/types/warehouse";
 
 interface HSCode {
   // Added id for DataTable compatibility
@@ -117,7 +114,7 @@ const Settings: React.FC = () => {
     }
 
     const highOccupancy = racks.filter(
-      (r) => r.occupancy && r.occupancy > 80
+      (r) => r.occupancy && r.occupancy > 80,
     ).length;
 
     // Racks that have never been audited
@@ -126,7 +123,7 @@ const Settings: React.FC = () => {
     const totalCapacity = racks.reduce((sum, r) => sum + r.capacity, 0);
     const totalOccupied = racks.reduce(
       (sum, r) => sum + (r.capacity * (r.occupancy || 0)) / 100,
-      0
+      0,
     );
 
     const freeSpace =
@@ -194,7 +191,13 @@ const Settings: React.FC = () => {
 
   // Modal States
   const [modalType, setModalType] = useState<
-    "WAREHOUSE" | "STAFF" | "HS_CODE" | "PERMISSIONS" | "RACK" | "EDIT_WAREHOUSE" | null
+    | "WAREHOUSE"
+    | "STAFF"
+    | "HS_CODE"
+    | "PERMISSIONS"
+    | "RACK"
+    | "EDIT_WAREHOUSE"
+    | null
   >(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [isTestingSmtp, setIsTestingSmtp] = useState(false);
@@ -258,7 +261,7 @@ const Settings: React.FC = () => {
     try {
       const res = await updateWareHouseLocation(editingWarehouse.id, payload);
       setWarehouses(
-        warehouses.map((w) => (w.id === editingWarehouse.id ? res.data : w))
+        warehouses.map((w) => (w.id === editingWarehouse.id ? res.data : w)),
       );
       showToast(`Warehouse ${res.data.code} updated`, "success");
       setModalType(null);
@@ -333,8 +336,8 @@ const Settings: React.FC = () => {
       prev.map((s) =>
         s.id === selectedItem.id
           ? { ...s, permissions: selectedItem.permissions }
-          : s
-      )
+          : s,
+      ),
     );
     showToast("Permissions updated", "success");
     setModalType(null);
@@ -347,8 +350,8 @@ const Settings: React.FC = () => {
       prev.map((r) =>
         r.id === id
           ? { ...r, last_audited: new Date().toISOString().split("T")[0] }
-          : r
-      )
+          : r,
+      ),
     );
     showToast(`Rack ${id} marked as audited`, "success");
   };
@@ -368,9 +371,7 @@ const Settings: React.FC = () => {
   const toggleWhStatus = async (wh: WareHouseLocation) => {
     try {
       const res = await updateWareHouseLocation(wh.id, { active: !wh.active });
-      setWarehouses((prev) =>
-        prev.map((w) => (w.id === wh.id ? res.data : w))
-      );
+      setWarehouses((prev) => prev.map((w) => (w.id === wh.id ? res.data : w)));
       showToast("Warehouse operational status toggled", "info");
     } catch (error) {
       showToast("Failed to update status", "error");
@@ -522,8 +523,8 @@ const Settings: React.FC = () => {
                 r.occupancy && r.occupancy > 80
                   ? "bg-red-500"
                   : r.occupancy && r.occupancy > 50
-                  ? "bg-yellow-500"
-                  : "bg-green-500"
+                    ? "bg-yellow-500"
+                    : "bg-green-500"
               }`}
               style={{ width: `${r.occupancy || 0}%` }}
             ></div>
