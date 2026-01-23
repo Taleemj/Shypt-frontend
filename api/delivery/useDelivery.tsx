@@ -88,6 +88,14 @@ const useDelivery = () => {
     return data;
   };
 
+  const getDeliverRiders = async (): Promise<{
+    message: string;
+    data: { id: number; full_name: string; email: string }[];
+  }> => {
+    const { data } = await client.get(`/api/delivery/riders`);
+    return data;
+  };
+
   return {
     listDeliveryOrders,
     createDeliveryOrder,
@@ -97,6 +105,7 @@ const useDelivery = () => {
     uploadPodPhoto,
     uploadCustomerSignature,
     updateDeliveryOrderStatus,
+    getDeliverRiders,
   };
 };
 
