@@ -37,6 +37,8 @@ import SecurityTab from "./settings/SecurityTab";
 import useAuth from "../../api/auth/useAuth";
 import { AuthUser } from "../../api/types/auth";
 
+import countriesData from "../../utils/countries.json";
+
 // Define HSCode interface here, assuming it's used in this file or passed to children
 interface HSCode {
   id: string;
@@ -301,6 +303,7 @@ const Settings: React.FC = () => {
       address: fd.get("address") as string,
       manager: fd.get("manager") as string,
       active: true,
+      country: fd.get("country") as string,
     };
     try {
       const res = await createWareHouseLocation(payload);
@@ -325,6 +328,7 @@ const Settings: React.FC = () => {
       name: fd.get("name") as string,
       address: fd.get("address") as string,
       manager: fd.get("manager") as string,
+      country: fd.get("country") as string,
     };
 
     try {
@@ -1080,6 +1084,23 @@ const Settings: React.FC = () => {
               rows={2}
             ></textarea>
           </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700">
+              Country
+            </label>
+            <select
+              name="country"
+              required
+              className="w-full border p-2 rounded mt-1 bg-white"
+            >
+              <option value="">Select a Country</option>
+              {countriesData.map((country) => (
+                <option key={country.code} value={country.name}>
+                  {country.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex justify-end pt-4">
             <button
               type="submit"
@@ -1152,6 +1173,24 @@ const Settings: React.FC = () => {
               rows={2}
               defaultValue={editingWarehouse?.address}
             ></textarea>
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700">
+              Country
+            </label>
+            <select
+              name="country"
+              required
+              className="w-full border p-2 rounded mt-1 bg-white"
+              defaultValue={editingWarehouse?.country}
+            >
+              <option value="">Select a Country</option>
+              {countriesData.map((country) => (
+                <option key={country.code} value={country.name}>
+                  {country.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex justify-end pt-4">
             <button

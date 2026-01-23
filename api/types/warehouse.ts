@@ -26,6 +26,7 @@ export interface WareHouseLocationAPIResponse {
 
 export interface CreateWareHouseLocationPayload {
   name: string;
+  country: string;
   code: string;
   address: string;
   manager: string;
@@ -34,6 +35,7 @@ export interface CreateWareHouseLocationPayload {
 
 export interface UpdateWareHouseLocationPayload {
   name?: string;
+  country?: string;
   code?: string;
   address?: string;
   manager?: string;
