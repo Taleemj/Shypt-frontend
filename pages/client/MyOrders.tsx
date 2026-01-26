@@ -12,6 +12,7 @@ import {
   Truck,
   AlertCircle,
   Loader2,
+  Zap,
 } from "lucide-react";
 import { DataTable, Column } from "../../components/UI/DataTable";
 import Modal from "../../components/UI/Modal";
@@ -55,6 +56,9 @@ const MyOrders: React.FC = () => {
   const [complianceAgreed, setComplianceAgreed] = useState(false);
   const [isInsured, setIsInsured] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [shippingOption, setShippingOption] = useState<"Standard" | "Express">(
+    "Standard",
+  );
 
   const triggerNav = (path: string) => {
     window.dispatchEvent(new CustomEvent("app-navigate", { detail: path }));
@@ -94,6 +98,7 @@ const MyOrders: React.FC = () => {
     setEstWeight("");
     setComplianceAgreed(false);
     setSelectedFiles(null);
+    setShippingOption("Standard");
   };
 
   const handleCreateDeclaration = async (
@@ -117,7 +122,11 @@ const MyOrders: React.FC = () => {
       return;
     }
 
-    const payload: CreateCargoDeclarationPayload = {
+    const isAirFreight = selectedWh.name.toLowerCase().includes("air");
+
+    const payload: CreateCargoDeclarationPayload & {
+      shipping_option?: string;
+    } = {
       warehouse_location_id: selectedWh.id,
       internal_curier: form.get("courier") as string,
       tracking_number: form.get("tracking") as string,
@@ -126,6 +135,10 @@ const MyOrders: React.FC = () => {
       weight: estWeight ? Number(estWeight) : undefined,
       insured: isInsured,
     };
+
+    if (isAirFreight) {
+      payload.shipping_option = shippingOption;
+    }
 
     // New validation for insurance
     if (isInsured && (!selectedFiles || selectedFiles.length === 0)) {
@@ -231,6 +244,9 @@ const MyOrders: React.FC = () => {
       ),
     },
   ];
+
+  const selectedWh = warehouses.find((wh) => wh.code === selectedWarehouse);
+  const isAirFreight = selectedWh?.name.toLowerCase().includes("air");
 
   return (
     <div className="space-y-6">
@@ -360,6 +376,40 @@ const MyOrders: React.FC = () => {
                   </select>
                 </div>
               </div>
+
+              {isAirFreight && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-2">
+                    Shipping Option
+                  </label>
+                  <div className="flex items-center space-x-4">
+                    <label className="inline-flex items-center">
+                      <input
+                        type="radio"
+                        name="shipping_option"
+                        value="Standard"
+                        checked={shippingOption === "Standard"}
+                        onChange={() => setShippingOption("Standard")}
+                        className="form-radio text-primary-600 h-4 w-4"
+                      />
+                      <span className="ml-2 text-sm text-slate-700">Standard Shipping</span>
+                    </label>
+                    <label className="inline-flex items-center">
+                      <input
+                        type="radio"
+                        name="shipping_option"
+                        value="Express"
+                        checked={shippingOption === "Express"}
+                        onChange={() => setShippingOption("Express")}
+                        className="form-radio text-primary-600 h-4 w-4"
+                      />
+                      <span className="ml-2 text-sm text-slate-700 flex items-center">
+                        <Zap size={14} className="mr-1 text-primary-500" />Express Shipping
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-2">
