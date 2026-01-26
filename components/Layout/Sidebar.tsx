@@ -125,12 +125,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     { name: "Dashboard", path: "/client/dashboard", icon: <Home size={20} /> },
     {
       name: "My Orders",
-      path: "/client/requests",
+      path: "/client/orders",
       icon: <ClipboardList size={20} />,
     },
     {
       name: "My Shipments",
-      path: "/client/orders",
+      path: "/client/shipments",
       icon: <Package size={20} />,
     },
     {

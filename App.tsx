@@ -52,10 +52,10 @@ import AdminDocumentCenter from "./pages/admin/AdminDocumentCenter";
 // CLIENT IMPORTS
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientProfile from "./pages/client/ClientProfile";
+import MyShipments from "./pages/client/MyShipments";
 import MyOrders from "./pages/client/MyOrders";
-import MyDeliveryRequests from "./pages/client/MyDeliveryRequests";
 import DeliveryRequestDetails from "./pages/client/DeliveryRequestDetails";
-import ClientOrderDetails from "./pages/client/ClientOrderDetails";
+import ClientShipmentDetails from "./pages/client/ClientShipmentDetails";
 import ShoppingRequests from "./pages/client/ShoppingRequests";
 import ClientShoppingDetails from "./pages/client/ShoppingDetails";
 import ShippingCalculator from "./pages/client/ShippingCalculator";
@@ -141,13 +141,13 @@ const AppRoutes: React.FC = () => {
       <Route path="/client" element={<ProtectedRoute role="CLIENT" />}>
         <Route path="dashboard" element={<ClientDashboard />} />
         <Route path="profile" element={<ClientProfile />} />
+        <Route path="shipments" element={<MyShipments />} />
+        <Route
+          path="shipments/:id"
+          element={<ClientShipmentDetailsWrapper />}
+        />
         <Route path="orders" element={<MyOrders />} />
         <Route path="orders/:id" element={<ClientOrderDetailsWrapper />} />
-        <Route path="requests" element={<MyDeliveryRequests />} />
-        <Route
-          path="requests/:id"
-          element={<DeliveryRequestDetailsWrapper />}
-        />
         <Route path="shopping" element={<ShoppingRequests />} />
         <Route path="shopping/:id" element={<ClientShoppingDetailsWrapper />} />
         <Route path="calculator" element={<ShippingCalculator />} />
@@ -161,7 +161,10 @@ const AppRoutes: React.FC = () => {
         <Route path="shipping-addresses" element={<ShippingAddresses />} />
         <Route path="document-center" element={<DocumentCenter />} />
         <Route path="deliveries" element={<ClientDeliveries />} />
-        <Route path="deliveries/:deliveryId" element={<ClientDeliveryDetailsWrapper />} />
+        <Route
+          path="deliveries/:deliveryId"
+          element={<ClientDeliveryDetailsWrapper />}
+        />
       </Route>
 
       <Route path="*" element={<Navigate to="/" />} />
@@ -325,24 +328,24 @@ const AdminClientOrderDetailsWrapper = () => {
   );
 };
 
-const DeliveryRequestDetailsWrapper = () => {
+const ClientOrderDetailsWrapper = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   return (
     <DeliveryRequestDetails
       id={id || ""}
-      onBack={() => navigate("/client/requests")}
+      onBack={() => navigate("/client/orders")}
     />
   );
 };
 
-const ClientOrderDetailsWrapper = () => {
+const ClientShipmentDetailsWrapper = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   return (
-    <ClientOrderDetails
+    <ClientShipmentDetails
       orderId={id || ""}
-      onBack={() => navigate("/client/orders")}
+      onBack={() => navigate("/client/shipments")}
     />
   );
 };

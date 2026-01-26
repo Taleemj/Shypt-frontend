@@ -20,7 +20,7 @@ const formatMoney = (amount: number) => {
   });
 };
 
-const ClientOrderDetails: React.FC<ClientOrderDetailsProps> = ({
+const ClientShipmentDetails: React.FC<ClientOrderDetailsProps> = ({
   orderId,
   onBack,
 }) => {
@@ -30,7 +30,9 @@ const ClientOrderDetails: React.FC<ClientOrderDetailsProps> = ({
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [isViewPackageModalOpen, setViewPackageModalOpen] = useState(false);
-  const [viewingPackage, setViewingPackage] = useState<PackageType | null>(null);
+  const [viewingPackage, setViewingPackage] = useState<PackageType | null>(
+    null,
+  );
 
   const handleOpenViewModal = (pkg: PackageType) => {
     setViewingPackage(pkg);
@@ -57,17 +59,17 @@ const ClientOrderDetails: React.FC<ClientOrderDetailsProps> = ({
   }, [orderId]);
 
   if (loading) {
-    return <div>Loading order details...</div>;
+    return <div>Loading shipment details...</div>;
   }
 
   if (!order) {
     return (
       <div className="text-center p-8">
         <h3 className="text-lg font-bold text-red-600">
-          Could not load order.
+          Could not load shipment.
         </h3>
         <p className="text-slate-500">
-          The order might have been deleted or an error occurred.
+          The shipment might have been deleted or an error occurred.
         </p>
         <button
           onClick={onBack}
@@ -80,7 +82,7 @@ const ClientOrderDetails: React.FC<ClientOrderDetailsProps> = ({
   }
 
   const timelineSteps = [
-    { key: "PENDING", label: "Order Created", loc: "Client Portal" },
+    { key: "PENDING", label: "Shipment Created", loc: "Client Portal" },
     {
       key: "RECEIVED",
       label: "Received at Warehouse",
@@ -112,7 +114,7 @@ const ClientOrderDetails: React.FC<ClientOrderDetailsProps> = ({
   ];
 
   let currentStatusIndex = timelineSteps.findIndex(
-    (step) => step.key === order.status.toUpperCase()
+    (step) => step.key === order.status.toUpperCase(),
   );
 
   const timeline = timelineSteps.map((step, index) => ({
@@ -121,8 +123,8 @@ const ClientOrderDetails: React.FC<ClientOrderDetailsProps> = ({
       index === 0
         ? new Date(order.created_at).toLocaleString()
         : index <= currentStatusIndex
-        ? new Date(order.updated_at).toLocaleString()
-        : "-",
+          ? new Date(order.updated_at).toLocaleString()
+          : "-",
     loc: step.loc,
     done: index <= currentStatusIndex,
   }));
@@ -140,7 +142,7 @@ const ClientOrderDetails: React.FC<ClientOrderDetailsProps> = ({
           </button>
           <div>
             <h2 className="text-2xl font-bold text-slate-800">
-              Order #{order.id}
+              Shipment #{order.id}
             </h2>
             <p className="text-slate-500 text-sm">
               Tracking ID: {order.tracking_number}
@@ -296,7 +298,10 @@ const ClientOrderDetails: React.FC<ClientOrderDetailsProps> = ({
                               : "N/A"}
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <button onClick={() => handleOpenViewModal(pkg)} className="font-medium text-gray-600 hover:underline">
+                            <button
+                              onClick={() => handleOpenViewModal(pkg)}
+                              className="font-medium text-gray-600 hover:underline"
+                            >
                               <Eye size={16} />
                             </button>
                           </td>
@@ -354,28 +359,67 @@ const ClientOrderDetails: React.FC<ClientOrderDetailsProps> = ({
       >
         {viewingPackage && (
           <div className="space-y-4">
-            <div><strong>HWB Number:</strong> {viewingPackage.hwb_number}</div>
-            <div><strong>Description:</strong> {viewingPackage.contents}</div>
-            <div><strong>Weight:</strong> {viewingPackage.weight} kg</div>
-            <div><strong>Value:</strong> UGX {formatMoney(parseFloat(viewingPackage.declared_value))}</div>
-            <div><strong>Dimensions:</strong> {viewingPackage.length && viewingPackage.width && viewingPackage.height ? `${viewingPackage.length}x${viewingPackage.width}x${viewingPackage.height} cm` : 'N/A'}</div>
-            <div><strong>Fragile:</strong> {viewingPackage.is_fragile ? 'Yes' : 'No'}</div>
-            <div><strong>Hazardous:</strong> {viewingPackage.is_hazardous ? 'Yes' : 'No'}</div>
-            <div><strong>Damaged:</strong> {viewingPackage.is_damaged ? 'Yes' : 'No'}</div>
+            <div>
+              <strong>HWB Number:</strong> {viewingPackage.hwb_number}
+            </div>
+            <div>
+              <strong>Description:</strong> {viewingPackage.contents}
+            </div>
+            <div>
+              <strong>Weight:</strong> {viewingPackage.weight} kg
+            </div>
+            <div>
+              <strong>Value:</strong> UGX{" "}
+              {formatMoney(parseFloat(viewingPackage.declared_value))}
+            </div>
+            <div>
+              <strong>Dimensions:</strong>{" "}
+              {viewingPackage.length &&
+              viewingPackage.width &&
+              viewingPackage.height
+                ? `${viewingPackage.length}x${viewingPackage.width}x${viewingPackage.height} cm`
+                : "N/A"}
+            </div>
+            <div>
+              <strong>Fragile:</strong>{" "}
+              {viewingPackage.is_fragile ? "Yes" : "No"}
+            </div>
+            <div>
+              <strong>Hazardous:</strong>{" "}
+              {viewingPackage.is_hazardous ? "Yes" : "No"}
+            </div>
+            <div>
+              <strong>Damaged:</strong>{" "}
+              {viewingPackage.is_damaged ? "Yes" : "No"}
+            </div>
             <div className="pt-4">
               <h4 className="font-bold text-lg mb-2">Package Photos</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {viewingPackage.package_photos && viewingPackage.package_photos.length > 0 ? (
+                {viewingPackage.package_photos &&
+                viewingPackage.package_photos.length > 0 ? (
                   viewingPackage.package_photos.map((photo, index) => (
-                    <img key={index} src={`${client.defaults.baseURL}/${photo}`} alt={`Package photo ${index + 1}`} className="w-full h-auto rounded-lg" />
+                    <img
+                      key={index}
+                      src={`${client.defaults.baseURL}/${photo}`}
+                      alt={`Package photo ${index + 1}`}
+                      className="w-full h-auto rounded-lg"
+                    />
                   ))
                 ) : (
-                  <p className="text-slate-500 italic">No photos available for this package.</p>
+                  <p className="text-slate-500 italic">
+                    No photos available for this package.
+                  </p>
                 )}
               </div>
             </div>
             <div className="pt-4 flex justify-end">
-              <button type="button" onClick={() => setViewPackageModalOpen(false)} className="px-4 py-2 border rounded text-slate-600 bg-white">Close</button>
+              <button
+                type="button"
+                onClick={() => setViewPackageModalOpen(false)}
+                className="px-4 py-2 border rounded text-slate-600 bg-white"
+              >
+                Close
+              </button>
             </div>
           </div>
         )}
@@ -384,4 +428,4 @@ const ClientOrderDetails: React.FC<ClientOrderDetailsProps> = ({
   );
 };
 
-export default ClientOrderDetails;
+export default ClientShipmentDetails;
