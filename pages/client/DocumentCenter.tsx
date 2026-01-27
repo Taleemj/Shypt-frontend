@@ -41,7 +41,8 @@ const DocumentCenter: React.FC = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800">Document Center</h1>
         <p className="text-gray-600 mt-2">
-          Access important documents, policies, and terms related to our services.
+          Access important documents, policies, and terms related to our
+          services.
         </p>
       </div>
 
@@ -59,11 +60,13 @@ const DocumentCenter: React.FC = () => {
                 <FileText className="h-8 w-8 text-gray-400 group-hover:text-primary-600" />
               </div>
               <div className="ml-4 flex-1">
-                <h3 className="text-lg font-semibold text-gray-800 group-hover:text-primary-700">{doc.title}</h3>
+                <h3 className="text-lg font-semibold text-gray-800 group-hover:text-primary-700">
+                  {doc.title}
+                </h3>
                 <p className="mt-1 text-sm text-gray-500">{doc.description}</p>
               </div>
               <div className="ml-2">
-                  <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-primary-600 opacity-50 group-hover:opacity-100 transition-opacity" />
+                <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-primary-600 opacity-50 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
           </a>
