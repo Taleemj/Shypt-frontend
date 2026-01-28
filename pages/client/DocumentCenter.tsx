@@ -58,7 +58,7 @@ const DocumentCenter: React.FC = () => {
           {documents.map((doc) => (
             <a
               key={doc.id}
-              href={doc.file_url} // Use file_url from the API response
+              href={`${import.meta.env.VITE_API_URL}/storage/${doc.file_url}`}
               target="_blank"
               rel="noopener noreferrer"
               className="block p-6 bg-white rounded-lg border border-gray-200 hover:shadow-lg hover:border-primary-500 transition-all duration-300 group"
@@ -72,8 +72,7 @@ const DocumentCenter: React.FC = () => {
                     {doc.name} {/* Use name from API */}
                   </h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    {doc.description}{" "}
-                    {/* Use description from API */}
+                    {doc.description} {/* Use description from API */}
                   </p>
                 </div>
                 <div className="ml-2">

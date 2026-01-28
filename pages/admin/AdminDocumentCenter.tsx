@@ -12,12 +12,8 @@ import useDocumentCenter from "@/api/documentCenter/useDocumentCenter";
 import { Document } from "@/api/types/documentCenter";
 
 const AdminDocumentCenter: React.FC = () => {
-  const {
-    listDocuments,
-    createDocument,
-    updateDocument,
-    deleteDocument,
-  } = useDocumentCenter();
+  const { listDocuments, createDocument, updateDocument, deleteDocument } =
+    useDocumentCenter();
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -179,7 +175,7 @@ const AdminDocumentCenter: React.FC = () => {
                 </div>
                 <div className="flex items-center space-x-3 ml-4">
                   <a
-                    href={doc.file_url}
+                    href={`${import.meta.env.VITE_API_URL}/storage/${doc.file_url}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-2 text-gray-400 hover:text-primary-600 transition-colors"
@@ -324,8 +320,8 @@ const AdminDocumentCenter: React.FC = () => {
               {isSubmitting
                 ? "Saving..."
                 : editingDocument
-                ? "Save Changes"
-                : "Add Document"}
+                  ? "Save Changes"
+                  : "Add Document"}
             </button>
           </div>
         </form>
