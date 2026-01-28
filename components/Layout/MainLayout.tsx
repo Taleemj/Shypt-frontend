@@ -75,7 +75,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   }, [user, currentPath, getUserProfile, showToast, navigate]);
 
   const isAdmin =
-    user?.user_type === "super_user" || user?.user_type === "staff";
+    user?.user_type === "super_user" ||
+    user?.user_type === "staff" ||
+    user?.user_type === "agent";
 
   const handleProfileClick = () => {
     const profilePath = isAdmin ? "/admin/profile" : "/client/profile";

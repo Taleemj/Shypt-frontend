@@ -20,6 +20,7 @@ import {
   Box,
   Calculator,
   X,
+  User,
 } from "lucide-react";
 import { useAuthContext } from "@/context/AuthContext";
 
@@ -174,21 +175,26 @@ const Sidebar: React.FC<SidebarProps> = ({
   const agentLinks = [
     { name: "Dashboard", path: "/admin/dashboard", icon: <Home size={20} /> },
     {
-      name: "Last Mile Delivery",
+      name: "Deliveries",
       path: "/admin/delivery",
       icon: <Truck size={20} />,
     },
+    { name: "Profile", path: "/admin/profile", icon: <User size={20} /> },
   ];
 
-  const staffLinks = adminLinks.filter(
-    (link) =>
-      ![
-        "Settings",
-        "Document Center",
-        "Reports",
-        "Compliance",
-      ].includes(link.name)
-  );
+  const staffLinks = [
+    ...adminLinks.filter(
+      (link) =>
+        !["Settings", "Document Center", "Reports", "Compliance"].includes(
+          link.name,
+        ),
+    ),
+    {
+      name: "Profile",
+      path: "/admin/profile",
+      icon: <User size={20} />,
+    },
+  ];
 
   const getLinks = () => {
     switch (user?.user_type) {
