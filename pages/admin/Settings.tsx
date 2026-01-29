@@ -340,22 +340,12 @@ const Settings: React.FC = () => {
     e.preventDefault();
     setIsInvitingUser(true);
     const fd = new FormData(e.currentTarget);
-    const password = fd.get("password") as string;
-    const password_confirmation = fd.get("password_confirmation") as string;
     const user_type = fd.get("user_type") as "super_user" | "staff" | "agent";
-
-    if (password !== password_confirmation) {
-      showToast("Passwords do not match", "error");
-      setIsInvitingUser(false);
-      return;
-    }
 
     const payload = {
       full_name: fd.get("full_name") as string,
       email: fd.get("email") as string,
       phone: fd.get("phone") as string,
-      password: password,
-      password_confirmation: password_confirmation,
       user_type: user_type,
     };
 
@@ -1610,28 +1600,6 @@ const Settings: React.FC = () => {
                 <option value="staff">Staff</option>
                 <option value="agent">Agent</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-700">
-                Password
-              </label>
-              <input
-                name="password"
-                type="password"
-                required
-                className="w-full border p-2 rounded mt-1 bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-700">
-                Confirm Password
-              </label>
-              <input
-                name="password_confirmation"
-                type="password"
-                required
-                className="w-full border p-2 rounded mt-1 bg-white"
-              />
             </div>
             <div className="flex justify-end pt-4">
               <button

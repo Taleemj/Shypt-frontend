@@ -105,9 +105,9 @@ const useAuth = () => {
     const { data } = await client.get(`/api/customers/${id}`);
     return data;
   };
-  interface createStaffPayload extends RegisterPayload {
+  type createStaffPayload = RegisterPayload & {
     user_type: "user" | "staff" | "super_user" | "agent";
-  }
+  };
   const createStaffAccount = async (
     payload: createStaffPayload,
   ): Promise<RegisterResponse> => {

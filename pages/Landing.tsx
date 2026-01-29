@@ -30,12 +30,14 @@ import Modal from "../components/UI/Modal";
 import useAuth from "@/api/auth/useAuth";
 import { useAuthContext } from "@/context/AuthContext";
 import useOrders from "@/api/orders/useOrders";
+import { useToast } from "@/context/ToastContext";
 
 const Landing: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [trackId, setTrackId] = useState("");
 
   const { login: loginContext, user, isAuthenticated } = useAuthContext();
+  const { showToast } = useToast();
   const { login: apiLogin, register: apiRegister } = useAuth();
   const { getOrderByTrackingNumber } = useOrders();
 
@@ -197,7 +199,15 @@ const Landing: React.FC = () => {
           // setAdminOtp(user.otp);
           // setAuthStep("OTP");
           loginContext(user, authorization.token);
-          handleNavigate("/admin/dashboard");
+          if (password === "user123@") {
+            showToast(
+              "Please change your default password for security.",
+              "warning",
+            );
+            handleNavigate("/admin/profile");
+          } else {
+            handleNavigate("/admin/dashboard");
+          }
         } else {
           // If a non-admin tries to log in via admin portal, show error or redirect
           setError("Access Denied: Only staff can use this portal.");

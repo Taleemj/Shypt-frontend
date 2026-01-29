@@ -27,7 +27,7 @@ export interface RegisterPayload {
   full_name: string;
   email: string;
   phone: string;
-  password: string;
+  password?: string;
   password_confirmation?: string;
   tin?: string;
   address?: string;

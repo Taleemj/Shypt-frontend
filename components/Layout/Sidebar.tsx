@@ -119,7 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     },
 
     // System
-    { name: "Reports", path: "/admin/reports", icon: <BarChart3 size={20} /> },
+    // { name: "Reports", path: "/admin/reports", icon: <BarChart3 size={20} /> },
   ];
 
   const clientLinks = [
