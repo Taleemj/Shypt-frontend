@@ -10,6 +10,7 @@ import {
   Printer,
 } from "lucide-react";
 import StatusBadge from "../../components/UI/StatusBadge";
+import Modal from "../../components/UI/Modal";
 import { useToast } from "../../context/ToastContext";
 import {
   Watermark,
@@ -33,6 +34,12 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
   const [loading, setLoading] = useState(true);
   const { showInvoice, updateInvoice, sendInvoiceByEmail } = useInvoice();
   const [isReminding, setIsReminding] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
+  const triggerNav = (path: string) => {
+    window.dispatchEvent(new CustomEvent("app-navigate", { detail: path }));
+  };
+
 
   const fetchInvoice = async () => {
     try {
@@ -67,6 +74,20 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
   const tax = 0.0; // Assuming tax is always 0 for now as per code
   const total = subtotal + tax;
 
+  const totalPaid = useMemo(
+    () =>
+      invoice?.payments?.reduce(
+        (acc, payment) => acc + Number(payment.amount),
+        0
+      ) || 0,
+    [invoice]
+  );
+
+  const allPaymentsCompleted = useMemo(
+    () => invoice?.payments?.every((p) => p.status === "COMPLETED") ?? false,
+    [invoice?.payments]
+  );
+
   const getCurrencySymbol = (currencyCode: string | undefined): string => {
     switch (currencyCode) {
       case "UGX":
@@ -89,16 +110,39 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
     });
   };
 
+  const confirmMarkAsPaid = async () => {
+    if (!invoice) return;
+    try {
+      await updateInvoice(invoice.id, { status: "PAID" });
+      showToast("Invoice marked as PAID", "success");
+      setIsPaymentModalOpen(false);
+      await fetchInvoice();
+    } catch (error) {
+      showToast(`Action failed: ${error.message}`, "error");
+      console.error(error);
+    }
+  };
+
+  const handleMarkPaidClick = () => {
+    if (!invoice) return;
+
+    if (!invoice.payments || invoice.payments.length === 0) {
+      showToast(
+        "No payment has been recorded for this invoice. Please record a payment first.",
+        "warning"
+      );
+      triggerNav("/admin/payments");
+      return;
+    }
+    setIsPaymentModalOpen(true);
+  };
+
   const handleAction = async (action: string) => {
     if (!invoice) return;
 
     try {
       let successMessage = "";
       switch (action) {
-        case "PAY":
-          await updateInvoice(invoice.id, { status: "PAID" });
-          successMessage = "Invoice marked as PAID";
-          break;
         case "VOID":
           await updateInvoice(invoice.id, { status: "CANCELLED" });
           successMessage = "Invoice has been Voided";
@@ -218,7 +262,7 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
                 <Ban size={16} className="mr-2" /> Void
               </button>
               <button
-                onClick={() => handleAction("PAY")}
+                onClick={handleMarkPaidClick}
                 className="flex items-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium"
               >
                 <Check size={16} className="mr-2" /> Mark Paid
@@ -373,17 +417,20 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
           <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
             <h3 className="font-bold text-slate-800 mb-4">Payment History</h3>
             {invoice?.payments?.length > 0 ? (
-              <ul className="space-y-3">
+              <ul className="space-y-2">
                 {invoice?.payments?.map((payment) => (
                   <li
                     key={payment.id}
-                    className="flex items-center justify-between text-sm"
+                    onClick={() => triggerNav(`/admin/payments/${payment.id}`)}
+                    className="flex items-center justify-between text-sm p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
                   >
                     <div>
                       <span
                         className={`font-medium ${
                           payment.status === "COMPLETED"
                             ? "text-green-600"
+                            : payment.status === "PENDING"
+                            ? "text-orange-600"
                             : "text-slate-800"
                         }`}
                       >
@@ -391,7 +438,7 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
                         {formatMoney(payment.amount)}
                       </span>
                       <span className="text-slate-500 ml-2">
-                        via {payment.method}
+                        via {payment.method.replace("_", " ")}
                       </span>
                     </div>
                     <StatusBadge status={payment.status || ""} />
@@ -404,6 +451,117 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
           </div>
         </div>
       </div>
+      <Modal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        title="Confirm Payment Status"
+      >
+        <div className="space-y-4">
+          <div className="px-4 pt-2">
+            <h3 className="font-semibold text-slate-800">Recorded Payments</h3>
+            <div className="max-h-40 overflow-y-auto mt-2 -mr-2 pr-2">
+              {invoice?.payments?.length > 0 ? (
+                <ul className="space-y-1">
+                  {invoice.payments.map((payment) => (
+                    <li
+                      key={payment.id}
+                      onClick={() => triggerNav(`/admin/payments/${payment.id}`)}
+                      className="flex items-center justify-between text-sm p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+                    >
+                      <div>
+                        <span
+                          className={`font-medium ${
+                            payment.status === "COMPLETED"
+                              ? "text-green-600"
+                              : "text-orange-600"
+                          }`}
+                        >
+                          {currencySymbol}
+                          {formatMoney(payment.amount)}
+                        </span>
+                        <span className="text-slate-500 ml-2">
+                          via {payment.method}
+                        </span>
+                      </div>
+                      <StatusBadge status={payment.status || ""} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-slate-500">No payments recorded.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="border-t border-slate-200 p-4 space-y-2 bg-slate-50/75">
+            <div className="flex justify-between font-bold text-sm">
+              <span>Total Invoice Amount:</span>
+              <span>
+                {currencySymbol}
+                {formatMoney(total)}
+              </span>
+            </div>
+            <div className="flex justify-between font-bold text-sm text-green-600">
+              <span>Total Paid:</span>
+              <span>
+                {currencySymbol}
+                {formatMoney(totalPaid)}
+              </span>
+            </div>
+          </div>
+
+          {totalPaid < total ? (
+            <div className="p-4 border-t border-slate-200">
+              <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-3 rounded-md mb-4">
+                <p className="font-bold">Underpayment</p>
+                <p className="text-sm">
+                  The recorded payment amount is less than the invoice total.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsPaymentModalOpen(false);
+                  triggerNav("/admin/payments");
+                }}
+                className="w-full justify-center flex items-center px-4 py-2 bg-slate-800 text-white rounded hover:bg-slate-700 text-sm font-medium"
+              >
+                Record Additional Payment
+              </button>
+            </div>
+          ) : !allPaymentsCompleted ? (
+            <div className="p-4 border-t border-slate-200">
+              <div className="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-3 rounded-md mb-4">
+                <p className="font-bold">Pending Payments</p>
+                <p className="text-sm">
+                  Some payments require verification. Click a payment above to review its details.
+                </p>
+              </div>
+              <button
+                disabled
+                className="w-full justify-center flex items-center px-4 py-2 bg-green-600 text-white rounded text-sm font-medium opacity-50 cursor-not-allowed"
+              >
+                Confirm and Mark as Paid
+              </button>
+            </div>
+          ) : (
+            <div className="p-4 border-t border-slate-200">
+              <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-3 rounded-md mb-4">
+                <p className="font-bold">Payment Complete</p>
+                <p className="text-sm">
+                  The invoice amount is covered. You can now mark this invoice
+                  as paid.
+                </p>
+              </div>
+              <button
+                onClick={confirmMarkAsPaid}
+                className="w-full justify-center flex items-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium"
+              >
+                Confirm and Mark as Paid
+              </button>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };
