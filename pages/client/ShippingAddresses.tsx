@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { ShippingAddress } from "@/api/types/shippingAddress";
 import useShippingAddress from "@/api/useShippingAddress/useShippingAddress";
-import { Map, Copy } from "lucide-react";
+import { Map, Copy, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { useAuthContext } from "@/context/AuthContext";
+import Modal from "@/components/UI/Modal";
 
 const ShippingAddresses: React.FC = () => {
   const [addresses, setAddresses] = useState<ShippingAddress[]>([]);
@@ -12,19 +13,25 @@ const ShippingAddresses: React.FC = () => {
   const { showToast } = useToast();
   const { user } = useAuthContext();
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newAddresses, setNewAddresses] = useState<Partial<ShippingAddress>[]>([
+    {},
+  ]);
+
+  const getAddresses = async () => {
+    try {
+      setLoading(true);
+      const res = await fetchShippingAddresses();
+      setAddresses(res.data);
+    } catch (error) {
+      console.error("Error fetching shipping addresses:", error);
+      showToast("Error fetching addresses", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const getAddresses = async () => {
-      try {
-        setLoading(true);
-        const res = await fetchShippingAddresses();
-        setAddresses(res.data);
-      } catch (error) {
-        console.error("Error fetching shipping addresses:", error);
-        showToast("Error fetching addresses", "error");
-      } finally {
-        setLoading(false);
-      }
-    };
     getAddresses();
   }, []);
 
@@ -44,15 +51,64 @@ Zip Code: ${address.zip}`;
     showToast("Address copied to clipboard", "success");
   };
 
+  const handleAddressChange = (
+    index: number,
+    field: keyof ShippingAddress,
+    value: string,
+  ) => {
+    const updatedAddresses = [...newAddresses];
+    updatedAddresses[index] = { ...updatedAddresses[index], [field]: value };
+    setNewAddresses(updatedAddresses);
+  };
+
+  const addAddressForm = () => {
+    setNewAddresses([
+      ...newAddresses,
+      { name: "", address_line1: "", city: "", state: "", zip: "" },
+    ]);
+  };
+
+  const removeAddressForm = (index: number) => {
+    const updatedAddresses = [...newAddresses];
+    updatedAddresses.splice(index, 1);
+    setNewAddresses(updatedAddresses);
+  };
+
+  const handleOpenModal = () => {
+    setNewAddresses([
+      { name: "", address_line1: "", city: "", state: "", zip: "" },
+    ]);
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // API not ready, so we just log and show a message
+    console.log("New addresses to be submitted:", newAddresses);
+    showToast("Submit functionality is not yet implemented.", "info");
+    setIsModalOpen(false);
+  };
+
   return (
     <div className="p-6 bg-slate-50 min-h-screen">
-      <h1 className="text-3xl font-bold text-slate-800 mb-6">
-        My Shipping Addresses
-      </h1>
-      <p className="text-slate-600 mb-8 max-w-2xl">
-        Manage your shipping addresses. You can use these addresses for your
-        deliveries.
-      </p>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800">
+            My Shipping Addresses
+          </h1>
+          <p className="text-slate-600 mt-2 max-w-2xl">
+            Manage your shipping addresses. You can use these addresses for your
+            deliveries.
+          </p>
+        </div>
+        <button
+          onClick={handleOpenModal}
+          className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 flex items-center gap-2"
+        >
+          <Plus size={18} />
+          Add Address(es)
+        </button>
+      </div>
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -161,6 +217,165 @@ Zip Code: ${address.zip}`;
           })}
         </div>
       )}
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Add New Shipping Address(es)"
+        size="lg"
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-6 max-h-[60vh] overflow-y-auto p-1">
+            {newAddresses.map((address, index) => (
+              <div
+                key={index}
+                className="p-4 border border-slate-200 rounded-lg relative space-y-4"
+              >
+                {newAddresses.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeAddressForm(index)}
+                    className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g., Home, Office"
+                      value={address.name || ""}
+                      onChange={(e) =>
+                        handleAddressChange(index, "name", e.target.value)
+                      }
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700">
+                    Address Line 1
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="123 Main St"
+                    value={address.address_line1 || ""}
+                    onChange={(e) =>
+                      handleAddressChange(
+                        index,
+                        "address_line1",
+                        e.target.value,
+                      )
+                    }
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700">
+                    Address Line 2 (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Apt, suite, etc."
+                    value={address.address_line2 || ""}
+                    onChange={(e) =>
+                      handleAddressChange(
+                        index,
+                        "address_line2",
+                        e.target.value,
+                      )
+                    }
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700">
+                      City
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="New York"
+                      value={address.city || ""}
+                      onChange={(e) =>
+                        handleAddressChange(index, "city", e.target.value)
+                      }
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700">
+                      State
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="NY"
+                      value={address.state || ""}
+                      onChange={(e) =>
+                        handleAddressChange(index, "state", e.target.value)
+                      }
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700">
+                      Zip Code
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="10001"
+                      value={address.zip || ""}
+                      onChange={(e) =>
+                        handleAddressChange(index, "zip", e.target.value)
+                      }
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 flex justify-between items-center">
+            <button
+              type="button"
+              onClick={addAddressForm}
+              className="text-sm font-semibold text-primary-600 hover:text-primary-800 flex items-center gap-2"
+            >
+              <Plus size={16} />
+              Add Another Address
+            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="px-6 py-2 rounded-md text-sm font-bold text-slate-600 hover:bg-slate-100 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2 rounded-md text-sm font-bold bg-primary-600 text-white hover:bg-primary-700"
+              >
+                Save Addresses
+              </button>
+            </div>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

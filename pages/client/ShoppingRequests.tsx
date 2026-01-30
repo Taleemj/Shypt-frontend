@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { ShoppingBag, Plus, ExternalLink, DollarSign } from "lucide-react";
+import {
+  ShoppingBag,
+  Plus,
+  ExternalLink,
+  DollarSign,
+  Trash2,
+} from "lucide-react";
 import { DataTable, Column } from "../../components/UI/DataTable";
 import Modal from "../../components/UI/Modal";
 import StatusBadge from "../../components/UI/StatusBadge";
@@ -19,6 +25,17 @@ const ShoppingRequests: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [selectedRequestForRejection, setSelectedRequestForRejection] =
+    useState<AssistedShoppingItem | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [isSubmittingRejection, setIsSubmittingRejection] = useState(false);
+
+  // State for multiple items in the modal
+  const [items, setItems] = useState<Partial<AddAssistedShoppingPayload>[]>([
+    { name: "", url: "", quantity: 1, notes: "" },
+  ]);
 
   const triggerNav = (path: string) => {
     window.dispatchEvent(new CustomEvent("app-navigate", { detail: path }));
@@ -40,6 +57,31 @@ const ShoppingRequests: React.FC = () => {
   useEffect(() => {
     fetchRequests();
   }, []);
+
+  const handleOpenModal = () => {
+    setItems([{ name: "", url: "", quantity: 1, notes: "" }]);
+    setIsModalOpen(true);
+  };
+
+  const handleItemChange = (
+    index: number,
+    field: keyof AddAssistedShoppingPayload,
+    value: string | number,
+  ) => {
+    const updatedItems = [...items];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+    setItems(updatedItems);
+  };
+
+  const addItemForm = () => {
+    setItems([...items, { name: "", url: "", quantity: 1, notes: "" }]);
+  };
+
+  const removeItemForm = (index: number) => {
+    const updatedItems = [...items];
+    updatedItems.splice(index, 1);
+    setItems(updatedItems);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -66,6 +108,40 @@ const ShoppingRequests: React.FC = () => {
     }
   };
 
+  const handleRejectClick = (
+    e: React.MouseEvent,
+    req: AssistedShoppingItem,
+  ) => {
+    e.stopPropagation();
+    setSelectedRequestForRejection(req);
+    setIsRejectModalOpen(true);
+  };
+
+  const handleRejectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectionReason) {
+      showToast("Please provide a reason for rejection.", "error");
+      return;
+    }
+    setIsSubmittingRejection(true);
+
+    console.log(
+      `Rejecting quote for request ID: ${selectedRequestForRejection?.id} with reason: ${rejectionReason}`,
+    );
+    // API call to reject quote would go here, e.g.:
+    // await rejectQuote(selectedRequestForRejection.id, rejectionReason);
+
+    showToast("Quote has been rejected.", "success");
+
+    setTimeout(() => {
+      // Simulating API call
+      setIsRejectModalOpen(false);
+      setRejectionReason("");
+      setIsSubmittingRejection(false);
+      fetchRequests(); // Refresh data
+    }, 500);
+  };
+
   const formatUgx = (amount: number) => {
     return `UGX ${amount.toLocaleString("en-US", {
       maximumFractionDigits: 0,
@@ -74,13 +150,13 @@ const ShoppingRequests: React.FC = () => {
 
   const handleAcceptQuote = (
     e: React.MouseEvent,
-    req: AssistedShoppingItem
+    req: AssistedShoppingItem,
   ) => {
     e.stopPropagation(); // Prevent row click
     // Simulate payment flow
     showToast(
       `Quote for ${req.name} accepted. Redirecting to payment...`,
-      "info"
+      "info",
     );
     triggerNav(`/client/shopping/${req.id}`);
   };
@@ -129,7 +205,7 @@ const ShoppingRequests: React.FC = () => {
       accessor: (r) => {
         const quoteAmount = r.quote_items?.reduce(
           (acc, q) => acc + q.unit_price * q.quantity,
-          0
+          0,
         );
         return quoteAmount ? formatUgx(quoteAmount) : "-";
       },
@@ -140,12 +216,20 @@ const ShoppingRequests: React.FC = () => {
       className: "text-right",
       accessor: (r) =>
         r.status === "quoted" ? (
-          <button
-            onClick={(e) => handleAcceptQuote(e, r)}
-            className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 shadow-sm"
-          >
-            Accept & Pay
-          </button>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={(e) => handleRejectClick(e, r)}
+              className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 shadow-sm"
+            >
+              Reject
+            </button>
+            <button
+              onClick={(e) => handleAcceptQuote(e, r)}
+              className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 shadow-sm"
+            >
+              Accept & Pay
+            </button>
+          </div>
         ) : null,
     },
   ];
@@ -160,7 +244,7 @@ const ShoppingRequests: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleOpenModal}
           className="bg-slate-800 text-white px-4 py-2 rounded hover:bg-slate-700 flex items-center text-sm font-medium shadow-sm"
         >
           <Plus size={16} className="mr-2" /> New Request
@@ -189,68 +273,158 @@ const ShoppingRequests: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="New Shopping Request"
+        title="New Shopping Request(s)"
+        size="lg"
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700">
-              Item Name
-            </label>
-            <input
-              name="item"
-              required
-              className="w-full border border-slate-300 rounded p-2 mt-1 bg-white text-slate-900"
-              placeholder="e.g. MacBook Pro M3"
-            />
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-6 max-h-[60vh] overflow-y-auto p-1">
+            {items.map((item, index) => (
+              <div
+                key={index}
+                className="p-4 border border-slate-200 rounded-lg relative space-y-4"
+              >
+                {items.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeItemForm(index)}
+                    className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Item Name
+                  </label>
+                  <input
+                    value={item.name}
+                    onChange={(e) =>
+                      handleItemChange(index, "name", e.target.value)
+                    }
+                    required
+                    className="w-full border border-slate-300 rounded p-2 mt-1 bg-white text-slate-900"
+                    placeholder="e.g. MacBook Pro M3"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Store URL (Link)
+                  </label>
+                  <input
+                    value={item.url}
+                    onChange={(e) =>
+                      handleItemChange(index, "url", e.target.value)
+                    }
+                    type="url"
+                    required
+                    className="w-full border border-slate-300 rounded p-2 mt-1 bg-white text-slate-900"
+                    placeholder="https://amazon.com/..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Quantity
+                  </label>
+                  <input
+                    value={item.quantity}
+                    onChange={(e) =>
+                      handleItemChange(
+                        index,
+                        "quantity",
+                        parseInt(e.target.value, 10),
+                      )
+                    }
+                    type="number"
+                    min={1}
+                    className="w-full border border-slate-300 rounded p-2 mt-1 bg-white text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Options / Notes
+                  </label>
+                  <textarea
+                    value={item.notes}
+                    onChange={(e) =>
+                      handleItemChange(index, "notes", e.target.value)
+                    }
+                    rows={3}
+                    className="w-full border border-slate-300 rounded p-2 mt-1 bg-white text-slate-900"
+                    placeholder="Size: M, Color: Black..."
+                  ></textarea>
+                </div>
+              </div>
+            ))}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">
-              Store URL (Link)
-            </label>
-            <input
-              name="url"
-              type="url"
-              required
-              className="w-full border border-slate-300 rounded p-2 mt-1 bg-white text-slate-900"
-              placeholder="https://amazon.com/..."
-            />
+
+          <div className="mt-6 flex justify-between items-center">
+            <button
+              type="button"
+              onClick={addItemForm}
+              className="text-sm font-semibold text-primary-600 hover:text-primary-800 flex items-center gap-2"
+            >
+              <Plus size={16} />
+              Add Another Item
+            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="px-6 py-2 rounded-md text-sm font-bold text-slate-600 hover:bg-slate-100 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700 flex items-center justify-center w-40 disabled:bg-primary-400 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Requests"
+                )}
+              </button>
+            </div>
           </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isRejectModalOpen}
+        onClose={() => setIsRejectModalOpen(false)}
+        title={`Reject Quote for REQ-${selectedRequestForRejection?.id}`}
+      >
+        <form onSubmit={handleRejectSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700">
-              Quantity
-            </label>
-            <input
-              name="quantity"
-              type="number"
-              defaultValue={1}
-              min={1}
-              className="w-full border border-slate-300 rounded p-2 mt-1 bg-white text-slate-900"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">
-              Options / Notes
+              Reason for Rejection
             </label>
             <textarea
-              name="notes"
-              rows={3}
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              rows={4}
+              required
               className="w-full border border-slate-300 rounded p-2 mt-1 bg-white text-slate-900"
-              placeholder="Size: M, Color: Black..."
+              placeholder="e.g., The quoted price is too high, found a better deal elsewhere, etc."
             ></textarea>
           </div>
           <div className="flex justify-end pt-4">
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700 flex items-center justify-center w-40 disabled:bg-primary-400 disabled:cursor-not-allowed"
+              disabled={isSubmittingRejection}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 flex items-center justify-center w-40 disabled:bg-red-400 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? (
+              {isSubmittingRejection ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Submitting...
                 </>
               ) : (
-                "Submit Request"
+                "Submit Rejection"
               )}
             </button>
           </div>

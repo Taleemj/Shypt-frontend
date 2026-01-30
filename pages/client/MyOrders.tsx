@@ -303,7 +303,7 @@ const MyOrders: React.FC = () => {
             columns={columns}
             loading={loading}
             onRowClick={(declaration) =>
-              triggerNav(`/client/requests/${declaration.id}`)
+              triggerNav(`/client/orders/${declaration.id}`)
             }
             title="My Declarations History"
             searchPlaceholder="Search by tracking number or description..."
@@ -392,7 +392,9 @@ const MyOrders: React.FC = () => {
                         onChange={() => setShippingOption("Standard")}
                         className="form-radio text-primary-600 h-4 w-4"
                       />
-                      <span className="ml-2 text-sm text-slate-700">Standard Shipping</span>
+                      <span className="ml-2 text-sm text-slate-700">
+                        Standard Shipping
+                      </span>
                     </label>
                     <label className="inline-flex items-center">
                       <input
@@ -404,7 +406,8 @@ const MyOrders: React.FC = () => {
                         className="form-radio text-primary-600 h-4 w-4"
                       />
                       <span className="ml-2 text-sm text-slate-700 flex items-center">
-                        <Zap size={14} className="mr-1 text-primary-500" />Express Shipping
+                        <Zap size={14} className="mr-1 text-primary-500" />
+                        Express Shipping
                       </span>
                     </label>
                   </div>
