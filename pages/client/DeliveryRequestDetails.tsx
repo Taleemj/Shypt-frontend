@@ -77,9 +77,9 @@ const DeliveryRequestDetails: React.FC<OrderDetailsProps> = ({
   const visualSteps = [
     { label: "Created", icon: FileText, matchStatus: "PENDING" },
     { label: "Received", icon: PackageIcon, matchStatus: "RECEIVED" },
-    { label: "In Transit", icon: Plane, matchStatus: "IN_TRANSIT" },
-    { label: "Arrived", icon: MapPin, matchStatus: "ARRIVED" },
-    { label: "Ready", icon: CheckCircle, matchStatus: "READY_FOR_RELEASE" },
+    // { label: "In Transit", icon: Plane, matchStatus: "IN_TRANSIT" },
+    // { label: "Arrived", icon: MapPin, matchStatus: "ARRIVED" },
+    // { label: "Ready", icon: CheckCircle, matchStatus: "READY_FOR_RELEASE" },
   ];
 
   const getProgressPercentage = () => {
@@ -95,7 +95,7 @@ const DeliveryRequestDetails: React.FC<OrderDetailsProps> = ({
     const simplifiedStatus = simplifiedStatusMap[status] || status;
 
     const idx = visualSteps.findIndex(
-      (s) => s.matchStatus === simplifiedStatus
+      (s) => s.matchStatus === simplifiedStatus,
     );
 
     if (idx !== -1) {
@@ -134,7 +134,7 @@ const DeliveryRequestDetails: React.FC<OrderDetailsProps> = ({
   const currentStatusInfo =
     STATUS_FLOW.find((s) => s.status === currentStatus) || STATUS_FLOW[0];
   const currentStatusIndex = STATUS_FLOW.findIndex(
-    (s) => s.status === currentStatus
+    (s) => s.status === currentStatus,
   );
 
   return (
@@ -175,7 +175,7 @@ const DeliveryRequestDetails: React.FC<OrderDetailsProps> = ({
                   {currentStatus === "DECLINED"
                     ? "Please contact support"
                     : `Updated: ${new Date(
-                        declaration.updated_at
+                        declaration.updated_at,
                       ).toLocaleDateString()}`}
                 </p>
               </div>
@@ -201,7 +201,7 @@ const DeliveryRequestDetails: React.FC<OrderDetailsProps> = ({
                   const isCompleted = index * 25 <= getProgressPercentage();
                   const isCurrent =
                     visualSteps.findIndex(
-                      (s) => s.matchStatus === declaration.status.toUpperCase()
+                      (s) => s.matchStatus === declaration.status.toUpperCase(),
                     ) === index;
                   return (
                     <div
@@ -317,10 +317,11 @@ const DeliveryRequestDetails: React.FC<OrderDetailsProps> = ({
           </h3>
           <div className="relative border-l-2 border-slate-100 ml-3 space-y-8">
             {STATUS_FLOW.filter(
-              (e) => !e.terminal || e.status === currentStatus
+              // @ts-ignore
+              (e) => !e.terminal || e.status === currentStatus,
             ).map((event, i) => {
               const eventStatusIndex = STATUS_FLOW.findIndex(
-                (s) => s.status === event.status
+                (s) => s.status === event.status,
               );
               const isDone = currentStatusIndex >= eventStatusIndex;
               const isCurrent = currentStatusIndex === eventStatusIndex;
@@ -339,8 +340,8 @@ const DeliveryRequestDetails: React.FC<OrderDetailsProps> = ({
                       isDone
                         ? "bg-green-500 border-green-500"
                         : isCurrent
-                        ? "bg-blue-500 border-blue-500 ring-4 ring-blue-100"
-                        : "bg-white border-slate-300"
+                          ? "bg-blue-500 border-blue-500 ring-4 ring-blue-100"
+                          : "bg-white border-slate-300"
                     }`}
                   ></div>
                   <div
@@ -362,8 +363,10 @@ const DeliveryRequestDetails: React.FC<OrderDetailsProps> = ({
                       {isDone
                         ? new Date(declaration.updated_at).toLocaleDateString()
                         : event.status === "PENDING"
-                        ? new Date(declaration.created_at).toLocaleDateString()
-                        : "-"}
+                          ? new Date(
+                              declaration.created_at,
+                            ).toLocaleDateString()
+                          : "-"}
                     </p>
                   </div>
                 </div>
