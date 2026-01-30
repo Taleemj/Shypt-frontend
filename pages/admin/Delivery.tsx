@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Plus, Eye, Loader2, User, Phone } from "lucide-react"; // Added User, Phone
+import React, { useState, useEffect, useMemo } from "react";
+import { Plus, Eye, Loader2, User, Phone } from "lucide-react";
 import { DataTable, Column } from "../../components/UI/DataTable";
 import Modal from "../../components/UI/Modal";
 import { useToast } from "../../context/ToastContext";
@@ -7,7 +7,6 @@ import { useAuthContext } from "../../context/AuthContext";
 import useDelivery from "../../api/delivery/useDelivery";
 import {
   Delivery,
-  CreateDeliveryOrderPayload,
   UpdateDeliveryStatusPayload,
 } from "../../api/types/delivery";
 import useOrders from "../../api/orders/useOrders";
@@ -15,8 +14,6 @@ import { Order } from "../../api/types/orders";
 import StatusBadge from "../../components/UI/StatusBadge";
 import { Truck } from "lucide-react";
 import { AuthUser } from "../../api/types/auth";
-import usePackage from "../../api/package/usePackage";
-import { Package } from "../../api/types/package";
 
 const DeliveryOrders: React.FC = () => {
   const { user } = useAuthContext();
@@ -28,12 +25,10 @@ const DeliveryOrders: React.FC = () => {
     getDeliverRiders,
   } = useDelivery();
   const { getOrders } = useOrders();
-  const { getPackages } = usePackage();
 
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [drivers, setDrivers] = useState<Partial<AuthUser>[]>([]);
-  const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmittingCreateDelivery, setIsSubmittingCreateDelivery] =
     useState(false);
@@ -60,6 +55,15 @@ const DeliveryOrders: React.FC = () => {
   const [selectedDriverForDetails, setSelectedDriverForDetails] =
     useState<Partial<AuthUser> | null>(null);
 
+  const deliverablePackages = useMemo(() => {
+    if (!orders || !deliveries) return [];
+    const deliveredPackageIds = new Set(deliveries.map((d) => d.id));
+    return orders
+      .filter((order) => order.status === "RECEIVED")
+      .flatMap((order) => order.packages)
+      .filter((pkg) => !deliveredPackageIds.has(pkg.id));
+  }, [orders, deliveries]);
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -71,14 +75,9 @@ const DeliveryOrders: React.FC = () => {
       } else {
         const ordersPromise = getOrders();
         const driversPromise = getDeliverRiders();
-        const packagesPromise = getPackages();
-        const [deliveriesRes, ordersRes, driversRes, packagesRes] =
-          await Promise.allSettled([
-            deliveryPromise,
-            ordersPromise,
-            driversPromise,
-            packagesPromise,
-          ]);
+        const [deliveriesRes, ordersRes, driversRes] = await Promise.allSettled(
+          [deliveryPromise, ordersPromise, driversPromise],
+        );
 
         if (deliveriesRes.status === "fulfilled") {
           setDeliveries(deliveriesRes.value.data);
@@ -97,13 +96,6 @@ const DeliveryOrders: React.FC = () => {
           setDrivers(driversRes.value.data);
         } else {
           showToast("Failed to fetch active drivers", "error");
-        }
-
-        if (packagesRes.status === "fulfilled") {
-          // @ts-ignore
-          setPackages(packagesRes.value.data);
-        } else {
-          showToast("Failed to fetch packages", "error");
         }
       }
     } catch (error) {
@@ -436,7 +428,7 @@ const DeliveryOrders: React.FC = () => {
                 <option value="" disabled>
                   Select a package
                 </option>
-                {packages.map((p) => {
+                {deliverablePackages.map((p) => {
                   const order = orders.find((o) => o.id === p.order_id);
                   const clientName = order?.user?.full_name || "Unknown";
                   return (
@@ -531,7 +523,8 @@ const DeliveryOrders: React.FC = () => {
               >
                 {isSubmittingCreateDelivery ? (
                   <>
-                    <Loader2 className="animate-spin h-5 w-5 mr-3" /> Creating...
+                    <Loader2 className="animate-spin h-5 w-5 mr-3" />{" "}
+                    Creating...
                   </>
                 ) : (
                   "Create Delivery"

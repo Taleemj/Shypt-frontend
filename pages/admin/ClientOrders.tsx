@@ -184,7 +184,7 @@ const ClientOrders: React.FC = () => {
             className="bg-slate-800 text-white px-4 py-2 rounded-md text-sm hover:bg-slate-700 transition flex items-center shadow-sm"
           >
             <Plus size={16} className="mr-2" />
-            Create New Order
+            Record Shipment
           </button>
         }
       />
