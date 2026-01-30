@@ -68,7 +68,6 @@ const DeliveryOrders: React.FC = () => {
     try {
       setLoading(true);
       const deliveryPromise = listDeliveryOrders();
-
       if (user?.user_type === "agent") {
         const deliveriesRes = await deliveryPromise;
         setDeliveries(deliveriesRes.data);
@@ -126,7 +125,7 @@ const DeliveryOrders: React.FC = () => {
     try {
       const payload = {
         package_id: Number(selectedPackageId),
-        driver_id: Number(selectedDriverIdForCreation),
+        rider_id: Number(selectedDriverIdForCreation),
         delivery_address: deliveryAddress,
         delivery_date: deliveryDate,
         delivery_notes: deliveryNotes,
