@@ -186,7 +186,8 @@ const Settings: React.FC = () => {
       if (
         (activeTab === "WAREHOUSES" ||
           activeTab === "LOCATIONS" ||
-          modalType === "STAFF") &&
+          modalType === "STAFF" ||
+          modalType === "EDIT_STAFF") &&
         warehouses.length === 0
       ) {
         setIsLoadingWarehouses(true);
@@ -315,10 +316,23 @@ const Settings: React.FC = () => {
       email: fd.get("email") as string,
       phone: fd.get("phone") as string,
     };
+    const warehouseId = fd.get("warehouse_location_id");
 
     try {
       setIsSubmitting(true);
       await updateUser(selectedItem.id, payload);
+
+      if (
+        selectedItem.user_type === "staff" &&
+        warehouseId &&
+        Number(warehouseId) !== selectedItem.warehouse_location_id
+      ) {
+        await AllocateWareHouseToStaff({
+          user_id: selectedItem.id,
+          warehouse_location_id: Number(warehouseId),
+        });
+      }
+
       showToast("Staff profile updated successfully", "success");
 
       setIsLoadingStaff(true);
@@ -1692,6 +1706,25 @@ const Settings: React.FC = () => {
               className="w-full border p-2 rounded mt-1 bg-white"
             />
           </div>
+          {selectedItem?.user_type === "staff" && (
+            <div>
+              <label className="block text-sm font-bold text-slate-700">
+                Assign to Warehouse
+              </label>
+              <select
+                name="warehouse_location_id"
+                required
+                defaultValue={selectedItem?.warehouse_location_id}
+                className="w-full border p-2 rounded mt-1 bg-white"
+              >
+                {warehouses.map((wh) => (
+                  <option key={wh.id} value={wh.id}>
+                    {wh.name} ({wh.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="flex justify-end pt-4">
             <button
               type="submit"

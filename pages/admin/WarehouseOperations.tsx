@@ -226,7 +226,7 @@ const WarehouseOperations: React.FC = () => {
           `Warning: Order ${order.id} expected in ${
             order.warehouse?.code || "N/A"
           }, not ${currentLocation}`,
-          "warning"
+          "warning",
         );
       }
       setSelectedOrderId(order.id.toString());
@@ -296,13 +296,13 @@ const WarehouseOperations: React.FC = () => {
         prev.map((o) =>
           o.id === parseInt(selectedOrderId)
             ? { ...o, packages: [...o.packages, newPackage] }
-            : o
-        )
+            : o,
+        ),
       );
 
       showToast(
         `Package ${newPackage.hwb_number} Received & Logged for Order ${selectedOrderId}`,
-        "success"
+        "success",
       );
 
       // Now, update the order status to "RECEIVED"
@@ -323,19 +323,19 @@ const WarehouseOperations: React.FC = () => {
           // Update local state for order status
           setOrders((prev) =>
             prev.map((o) =>
-              o.id === orderIdNum ? { ...o, status: OrderStatus.RECEIVED } : o
-            )
+              o.id === orderIdNum ? { ...o, status: OrderStatus.RECEIVED } : o,
+            ),
           );
           showToast(
             `Order status for #${orderIdNum} updated to "Received".`,
-            "success"
+            "success",
           );
         }
       } catch (statusUpdateError) {
         console.error("Failed to update order status:", statusUpdateError);
         showToast(
           "Package added, but failed to update order status.",
-          "warning"
+          "warning",
         );
       }
 
@@ -352,7 +352,7 @@ const WarehouseOperations: React.FC = () => {
       console.error("Failed to receive package:", error);
       showToast(
         `Failed to receive package: ${error.message || "Unknown error"}`,
-        "error"
+        "error",
       );
     } finally {
       setLoading(false);
@@ -361,7 +361,7 @@ const WarehouseOperations: React.FC = () => {
 
   const togglePackageSelection = (id: number) => {
     setSelectedPackages((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
 
@@ -381,7 +381,7 @@ const WarehouseOperations: React.FC = () => {
   };
 
   const handleConsolidateSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
+    e: React.FormEvent<HTMLFormElement>,
   ) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -391,7 +391,7 @@ const WarehouseOperations: React.FC = () => {
     const departureDate = formData.get("departure_date") as string;
 
     const selectedWarehouse = warehouses.find(
-      (w) => w.code === currentLocation
+      (w) => w.code === currentLocation,
     );
     if (!selectedWarehouse) {
       showToast("No warehouse selected or found.", "error");
@@ -402,11 +402,11 @@ const WarehouseOperations: React.FC = () => {
 
     try {
       const selectedItems = packagesForConsolidation?.filter((i) =>
-        selectedPackages.includes(i.packageId)
+        selectedPackages.includes(i.packageId),
       );
       const totalWeight = selectedItems.reduce(
         (sum, item) => sum + Number(item.weight),
-        0
+        0,
       );
       const packageIds = selectedItems.map((p) => p.packageId);
 
@@ -429,17 +429,17 @@ const WarehouseOperations: React.FC = () => {
         try {
           showToast(
             `Created batch ${batchId}. Adding ${packageIds.length} packages...`,
-            "info"
+            "info",
           );
           await Promise.all(
             packageIds.map((pkgId) =>
-              addConsolidationBatchPackages(batchId, pkgId)
-            )
+              addConsolidationBatchPackages(batchId, pkgId),
+            ),
           );
         } catch (err) {
           showToast(
             `Failed to add all packages to batch ${batchId}. Please check the batch details.`,
-            "error"
+            "error",
           );
           console.error("Error adding packages to consolidation batch:", err);
         }
@@ -456,6 +456,7 @@ const WarehouseOperations: React.FC = () => {
         taxStatus: TaxStatus.UNASSESSED, // Default for new MAWB
         eta: "Pending", // Or use a date from response if available
         createdDate: newMawbData.created_at,
+        // @ts-ignore
         totalWeight: parseFloat(newMawbData.total_weight),
       };
 
@@ -472,7 +473,7 @@ const WarehouseOperations: React.FC = () => {
         });
         const allPackagesConsolidated = newPackages.every(
           // @ts-ignore
-          (p) => p.status === OrderStatus.CONSOLIDATED
+          (p) => p.status === OrderStatus.CONSOLIDATED,
         );
         if (allPackagesConsolidated) {
           return {
@@ -515,8 +516,8 @@ const WarehouseOperations: React.FC = () => {
       case "DEPART":
         setConsolidations((prev) =>
           prev.map((c) =>
-            c.id === manifest.id ? { ...c, status: "DEPARTED" } : c
-          )
+            c.id === manifest.id ? { ...c, status: "DEPARTED" } : c,
+          ),
         );
         showToast(`${manifest.id} marked as Departed`, "success");
         break;
@@ -564,7 +565,7 @@ const WarehouseOperations: React.FC = () => {
       taxStatus: TaxStatus.PAID,
     };
     setMawbs((prev) =>
-      prev.map((m) => (m.id === releasedMawb.id ? releasedMawb : m))
+      prev.map((m) => (m.id === releasedMawb.id ? releasedMawb : m)),
     );
 
     releasedMawb.hwbs.forEach((hwbId) => {
@@ -586,7 +587,7 @@ const WarehouseOperations: React.FC = () => {
       .filter(
         (order) =>
           order.status === "RECEIVED" &&
-          order.warehouse.code === currentLocation
+          order.warehouse.code === currentLocation,
       )
       .flatMap((order) =>
         order.packages.map((pkg) => ({
@@ -598,23 +599,20 @@ const WarehouseOperations: React.FC = () => {
           value: parseFloat(pkg.declared_value),
           status: order.status,
           origin: order.warehouse.code,
-        }))
+        })),
       );
   }, [orders, currentLocation]);
 
   // Helpers
   const currentInventory = inventory.filter(
-    (i) => i.status === OrderStatus.RECEIVED && i.origin === currentLocation
+    (i) => i.status === OrderStatus.RECEIVED && i.origin === currentLocation,
   );
 
   const pendingOrders = orders.filter(
-    (o) => o.status === "PENDING" && o.warehouse?.code === currentLocation
+    (o) => o.status === "PENDING" && o.warehouse?.code === currentLocation,
   );
 
-  const outboundManifests = useMemo(
-    () => consolidations,
-    [consolidations]
-  );
+  const outboundManifests = useMemo(() => consolidations, [consolidations]);
 
   return (
     <div className="space-y-6">

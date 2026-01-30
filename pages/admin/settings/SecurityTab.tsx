@@ -109,7 +109,6 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => {
-                            console.log(s);
                             setSelectedItem(s);
                             setModalType("EDIT_STAFF");
                           }}
