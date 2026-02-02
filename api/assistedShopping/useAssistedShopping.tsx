@@ -1,7 +1,7 @@
 import client from "..";
 import {
   AssistedShoppingListResponse,
-  AddAssistedShoppingPayload,
+  AddAssistedShoppingRequestPayload, // Changed from AddAssistedShoppingPayload
   AddAssistedShoppingResponse,
   AssistedShoppingResponse,
   UpdateAssistedShoppingPayload,
@@ -20,7 +20,7 @@ const useAssistedShopping = () => {
     };
 
   const addAssistedShopping = async (
-    payload: AddAssistedShoppingPayload
+    payload: AddAssistedShoppingRequestPayload // Changed from AddAssistedShoppingPayload
   ): Promise<AddAssistedShoppingResponse> => {
     const { data } = await client.post("/api/assisted_shopping", payload);
     return data;

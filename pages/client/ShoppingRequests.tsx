@@ -13,7 +13,8 @@ import { useToast } from "../../context/ToastContext";
 import useAssistedShopping from "../../api/assistedShopping/useAssistedShopping";
 import {
   AssistedShoppingItem,
-  AddAssistedShoppingPayload,
+  AddAssistedShoppingItemPayload, // New import
+  AddAssistedShoppingRequestPayload, // New import
 } from "../../api/types/assistedShopping";
 
 const ShoppingRequests: React.FC = () => {
@@ -33,7 +34,7 @@ const ShoppingRequests: React.FC = () => {
   const [isSubmittingRejection, setIsSubmittingRejection] = useState(false);
 
   // State for multiple items in the modal
-  const [items, setItems] = useState<Partial<AddAssistedShoppingPayload>[]>([
+  const [items, setItems] = useState<AddAssistedShoppingItemPayload[]>([
     { name: "", url: "", quantity: 1, notes: "" },
   ]);
 
@@ -65,7 +66,7 @@ const ShoppingRequests: React.FC = () => {
 
   const handleItemChange = (
     index: number,
-    field: keyof AddAssistedShoppingPayload,
+    field: keyof AddAssistedShoppingRequestPayload,
     value: string | number,
   ) => {
     const updatedItems = [...items];
@@ -86,20 +87,32 @@ const ShoppingRequests: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    const payload: AddAssistedShoppingPayload = {
-      name: fd.get("item") as string,
-      url: fd.get("url") as string,
-      quantity: parseInt(fd.get("quantity") as string, 10),
-      notes: fd.get("notes") as string,
+
+    const itemsPayload: AddAssistedShoppingItemPayload[] = items.map(
+      (item) => ({
+        name: item.name || "",
+        url: item.url || "",
+        quantity: item.quantity || 1,
+        notes: item.notes || "",
+      }),
+    );
+
+    const payload: AddAssistedShoppingRequestPayload = {
+      insured: false,
+      shipping_mode: "consequatur",
+      items: itemsPayload,
+      name: "", // as specified by the user
+      url: "leave this empty", // as specified by the user
+      quantity: itemsPayload.length, // as specified by the user
+      notes: "this as well", // as specified by the user
     };
 
     try {
       await addAssistedShopping(payload);
       showToast("Request submitted! We will send a quote shortly.", "success");
       setIsModalOpen(false);
-      form.reset();
+      // form.reset(); // No longer needed as state is managed
+      setItems([{ name: "", url: "", quantity: 1, notes: "" }]); // Reset items state
       await fetchRequests();
     } catch (error) {
       showToast("Failed to submit request.", "error");

@@ -82,8 +82,27 @@ export interface AssistedShoppingResponse {
   data: AssistedShoppingItem;
 }
 
-// Payload for POST /api/assisted_shopping
+// Payload for POST /api/assisted_shopping for a single item (existing use-case)
 export interface AddAssistedShoppingPayload {
+  name: string;
+  url: string;
+  quantity: number;
+  notes: string;
+}
+
+// Payload for individual items within a multi-item request
+export interface AddAssistedShoppingItemPayload {
+  name: string;
+  url: string;
+  quantity: number;
+  notes: string;
+}
+
+// Payload for POST /api/assisted_shopping (new multi-item request structure)
+export interface AddAssistedShoppingRequestPayload {
+  insured: boolean;
+  shipping_mode: string;
+  items: AddAssistedShoppingItemPayload[];
   name: string;
   url: string;
   quantity: number;
