@@ -9,18 +9,18 @@ export interface ExpenseCategory {
 export interface Expense {
   id: number;
   date: string;
-  category_id: number;
-  description: string;
-  amount: number;
-  vendor: string; // paidTo
-  paid_by: string; // authorized by
-  status: "PAID" | "PENDING" | "REJECTED";
-  notes?: string;
-  linked_manifest?: string;
-  receipt_url?: string;
-  created_at?: string;
-  updated_at?: string;
-  category?: ExpenseCategory;
+  expense_category_id: number;
+  particular: string;
+  unit_price: number;
+  // vendor: string;
+  // paid_by: string;
+  // status: "PAID" | "PENDING" | "REJECTED";
+  // notes?: string;
+  // linked_manifest?: string;
+  // receipt_url?: string;
+  // created_at?: string;
+  // updated_at?: string;
+  // category?: ExpenseCategory;
 }
 
 // API Response Types
@@ -62,7 +62,6 @@ export interface SingleExpenseCategoryResponse {
 export interface MessageResponse {
   message: string;
 }
-
 
 // Payload Types
 export interface CreateExpensePayload {

@@ -19,6 +19,8 @@ const Expenses: React.FC = () => {
     listExpenses,
     listExpenseCategories,
     createExpense,
+    updateExpense,
+    deleteExpense,
     createExpenseCategory,
     updateExpenseCategory,
     deleteExpenseCategory,
@@ -31,6 +33,9 @@ const Expenses: React.FC = () => {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   const triggerNav = (path: string) => {
     window.dispatchEvent(new CustomEvent("app-navigate", { detail: path }));
@@ -56,9 +61,15 @@ const Expenses: React.FC = () => {
     }
   };
 
-  useEffect(() => {
+    useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (!isFormOpen) {
+      setEditingExpense(null);
+    }
+  }, [isFormOpen]);
 
   const handleAddExpense = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -73,13 +84,15 @@ const Expenses: React.FC = () => {
       unit_price: Number(fd.get("amount")),
       date: fd.get("date") as string,
       quantity: 1,
-      // linked_manifest: fd.get("manifest") as string,
-      // vendor: fd.get("paidTo") as string,
-      // status: "PAID",
     };
     try {
-      await createExpense(newExp as any);
-      showToast("Expense Recorded", "success");
+      let res;
+      if (editingExpense) {
+        res = await updateExpense(editingExpense.id, newExp as any);
+      } else {
+        res = await createExpense(newExp as any);
+      }
+      showToast(res.message || "Expense Recorded", "success");
       setIsFormOpen(false);
       fetchData(); // Refresh data
     } catch (error) {
@@ -126,6 +139,19 @@ const Expenses: React.FC = () => {
     }
   };
 
+  const handleDelete = async (id: number) => {
+    if (window.confirm("Are you sure you want to delete this expense?")) {
+      try {
+        await deleteExpense(id);
+        showToast("Expense deleted", "success");
+        fetchData();
+        setIsDetailModalOpen(false);
+      } catch (error) {
+        showToast("Failed to delete expense.", "error");
+      }
+    }
+  };
+
   const columns: Column<Expense>[] = [
     {
       header: "ID",
@@ -140,41 +166,27 @@ const Expenses: React.FC = () => {
     { header: "Date", accessor: "date", sortable: true },
     {
       header: "Category",
-      accessor: (exp) => exp.category?.name || "N/A",
-      // sortKey: "category.name",
+      accessor: (exp) =>
+        categories.find((c) => c.id === exp.expense_category_id)?.name || "N/A",
+      sortKey: "expense_category_id",
       sortable: true,
       className: "text-xs font-bold",
     },
-    { header: "Description", accessor: "description" },
-    { header: "Paid To", accessor: "vendor" },
+    { header: "Particulars", accessor: "particular" },
     {
       header: "Amount",
       accessor: (exp) => (
         <span className="font-bold text-red-600">
-          -${exp.amount.toFixed(2)}
+          -${exp.unit_price.toFixed(2)}
         </span>
       ),
-      sortKey: "amount",
+      sortKey: "unit_price",
       sortable: true,
       className: "text-right",
     },
-    {
-      header: "Status",
-      accessor: (exp) => (
-        <span
-          className={`px-2 py-1 rounded text-xs ${
-            exp.status === "PAID"
-              ? "bg-slate-100 text-slate-600"
-              : "bg-yellow-100 text-yellow-700"
-          }`}
-        >
-          {exp.status}
-        </span>
-      ),
-    },
   ];
 
-  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.unit_price, 0);
 
   return (
     <div className="space-y-6">
@@ -226,7 +238,10 @@ const Expenses: React.FC = () => {
         <DataTable
           data={expenses}
           columns={columns}
-          onRowClick={(exp) => triggerNav(`/admin/expenses/${exp.id}`)}
+                    onRowClick={(exp) => {
+            setSelectedExpense(exp);
+            setIsDetailModalOpen(true);
+          }}
           title="Expense Ledger"
           searchPlaceholder="Search Expenses..."
         />
@@ -235,9 +250,13 @@ const Expenses: React.FC = () => {
       <Modal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title="Record New Expense"
+        title={editingExpense ? "Edit Expense" : "Record New Expense"}
       >
-        <form onSubmit={handleAddExpense} className="space-y-4">
+        <form
+          onSubmit={handleAddExpense}
+          className="space-y-4"
+          key={editingExpense ? editingExpense.id : "new"}
+        >
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700">
@@ -246,6 +265,7 @@ const Expenses: React.FC = () => {
               <select
                 name="category_id"
                 required
+                defaultValue={editingExpense?.expense_category_id}
                 className="w-full border p-2 rounded mt-1 bg-white text-slate-900"
               >
                 <option value="">Select Category</option>
@@ -264,7 +284,9 @@ const Expenses: React.FC = () => {
                 type="date"
                 name="date"
                 required
-                defaultValue={new Date().toISOString().split("T")[0]}
+                defaultValue={
+                  editingExpense?.date || new Date().toISOString().split("T")[0]
+                }
                 className="w-full border p-2 rounded mt-1 bg-white text-slate-900"
               />
             </div>
@@ -276,6 +298,9 @@ const Expenses: React.FC = () => {
             <input
               name="description"
               required
+              defaultValue={
+                editingExpense?.particular.split(" Linked Manifest:")[0]
+              }
               placeholder="e.g. Flight EK202 Charges"
               className="w-full border p-2 rounded mt-1 bg-white text-slate-900"
             />
@@ -290,6 +315,7 @@ const Expenses: React.FC = () => {
                 type="number"
                 step="0.01"
                 required
+                defaultValue={editingExpense?.unit_price}
                 placeholder="0.00"
                 className="w-full border p-2 rounded mt-1 bg-white text-slate-900"
               />
@@ -301,6 +327,9 @@ const Expenses: React.FC = () => {
               <input
                 name="paidTo"
                 required
+                defaultValue={
+                  editingExpense?.particular.split(" Vendor: ")[1] || ""
+                }
                 placeholder="Vendor Name"
                 className="w-full border p-2 rounded mt-1 bg-white text-slate-900"
               />
@@ -313,6 +342,11 @@ const Expenses: React.FC = () => {
             <input
               name="manifest"
               placeholder="e.g. MAWB-001"
+              defaultValue={
+                editingExpense?.particular
+                  .split(" Linked Manifest: ")[1]
+                  ?.split(" Vendor:")[0] || ""
+              }
               className="w-full border p-2 rounded mt-1 bg-white text-slate-900"
             />
           </div>
@@ -322,7 +356,11 @@ const Expenses: React.FC = () => {
               disabled={isSubmitting}
               className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
             >
-              {isSubmitting ? "Saving..." : "Save Expense"}
+              {isSubmitting
+                ? "Saving..."
+                : editingExpense
+                ? "Update Expense"
+                : "Save Expense"}
             </button>
           </div>
         </form>
@@ -404,6 +442,62 @@ const Expenses: React.FC = () => {
               </div>
             ))}
           </div>
+        </div>
+      </Modal>
+      <Modal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        title={`Expense Details: EXP-${selectedExpense?.id}`}
+      >
+        {selectedExpense && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-medium text-slate-500">Date</h3>
+              <p className="text-slate-900">{selectedExpense.date}</p>
+            </div>
+            <div>
+              <h3 className="font-medium text-slate-500">Category</h3>
+              <p className="text-slate-900">
+                {categories.find(
+                  (c) => c.id === selectedExpense.expense_category_id
+                )?.name || "N/A"}
+              </p>
+            </div>
+            <div>
+              <h3 className="font-medium text-slate-500">Particulars</h3>
+              <p className="text-slate-900">{selectedExpense.particular}</p>
+            </div>
+            <div>
+              <h3 className="font-medium text-slate-500">Amount</h3>
+              <p className="text-red-600 font-bold">
+                -${selectedExpense.unit_price.toFixed(2)}
+              </p>
+            </div>
+          </div>
+        )}
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            onClick={() => {
+              if (selectedExpense) {
+                handleDelete(selectedExpense.id);
+              }
+            }}
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 text-sm font-medium"
+          >
+            Delete
+          </button>
+          <button
+            onClick={() => {
+              if (selectedExpense) {
+                setEditingExpense(selectedExpense);
+                setIsDetailModalOpen(false);
+                setIsFormOpen(true);
+              }
+            }}
+            className="bg-slate-600 text-white px-4 py-2 rounded-md hover:bg-slate-700 text-sm font-medium"
+          >
+            Edit
+          </button>
         </div>
       </Modal>
     </div>

@@ -34,11 +34,7 @@ const useExpenses = () => {
       formData.append(key, payload[key]);
     });
 
-    const { data } = await client.post("/api/expenditures/expenses", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    const { data } = await client.post("/api/expenditures/expenses", payload);
     return data;
   };
 
@@ -46,21 +42,9 @@ const useExpenses = () => {
     id: number,
     payload: UpdateExpensePayload,
   ): Promise<ExpenseResponse> => {
-    const formData = new FormData();
-    Object.keys(payload).forEach((key) => {
-      // @ts-ignore
-      formData.append(key, payload[key]);
-    });
-    formData.append("_method", "PUT");
-
-    const { data } = await client.post(
+    const { data } = await client.put(
       `/api/expenditures/expenses/${id}`,
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      },
+      payload,
     );
     return data;
   };
