@@ -56,8 +56,8 @@ const MyOrders: React.FC = () => {
   const [complianceAgreed, setComplianceAgreed] = useState(false);
   const [isInsured, setIsInsured] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
-  const [shippingOption, setShippingOption] = useState<"Standard" | "Express">(
-    "Standard",
+  const [shippingOption, setShippingOption] = useState<"standard" | "express">(
+    "standard",
   );
 
   const triggerNav = (path: string) => {
@@ -98,7 +98,7 @@ const MyOrders: React.FC = () => {
     setEstWeight("");
     setComplianceAgreed(false);
     setSelectedFiles(null);
-    setShippingOption("Standard");
+    setShippingOption("standard");
   };
 
   const handleCreateDeclaration = async (
@@ -125,7 +125,7 @@ const MyOrders: React.FC = () => {
     const isAirFreight = selectedWh.name.toLowerCase().includes("air");
 
     const payload: CreateCargoDeclarationPayload & {
-      shipping_option?: string;
+      shipping_mode?: string;
     } = {
       warehouse_location_id: selectedWh.id,
       internal_curier: form.get("courier") as string,
@@ -137,7 +137,7 @@ const MyOrders: React.FC = () => {
     };
 
     if (isAirFreight) {
-      payload.shipping_option = shippingOption;
+      payload.shipping_mode = shippingOption;
     }
 
     // New validation for insurance
@@ -386,10 +386,10 @@ const MyOrders: React.FC = () => {
                     <label className="inline-flex items-center">
                       <input
                         type="radio"
-                        name="shipping_option"
-                        value="Standard"
-                        checked={shippingOption === "Standard"}
-                        onChange={() => setShippingOption("Standard")}
+                        name="shipping_mode"
+                        value="standard"
+                        checked={shippingOption === "standard"}
+                        onChange={() => setShippingOption("standard")}
                         className="form-radio text-primary-600 h-4 w-4"
                       />
                       <span className="ml-2 text-sm text-slate-700">
@@ -399,10 +399,10 @@ const MyOrders: React.FC = () => {
                     <label className="inline-flex items-center">
                       <input
                         type="radio"
-                        name="shipping_option"
-                        value="Express"
-                        checked={shippingOption === "Express"}
-                        onChange={() => setShippingOption("Express")}
+                        name="shipping_mode"
+                        value="express"
+                        checked={shippingOption === "express"}
+                        onChange={() => setShippingOption("express")}
                         className="form-radio text-primary-600 h-4 w-4"
                       />
                       <span className="ml-2 text-sm text-slate-700 flex items-center">
