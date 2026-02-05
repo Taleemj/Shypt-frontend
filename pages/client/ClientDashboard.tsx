@@ -51,7 +51,7 @@ const ClientDashboard: React.FC = () => {
         setPackages(packagesRes.data.slice(0, 3));
         setLatestNotifications(notificationsRes.data.messages.slice(0, 3));
         setUnreadNotificationsCount(
-          notificationsRes.data.unread_messages_count
+          notificationsRes.data.unread_messages_count,
         );
       } catch (error) {
         showToast("Failed to fetch dashboard data", "error");
@@ -267,7 +267,19 @@ const ClientDashboard: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-semibold text-slate-800 group-hover:text-primary-600 transition">
-                        {pkg.cargo_details}
+                        {(() => {
+                          if (!pkg.cargo_details || pkg.cargo_details.length === 0) {
+                            return "No cargo details";
+                          }
+                          const items = pkg.cargo_details.map((detail) => detail.cargo_item);
+                          if (items.length === 1) {
+                            return items[0];
+                          }
+                          if (items.length === 2) {
+                            return `${items[0]}, ${items[1]}`;
+                          }
+                          return `${items[0]}, ${items[1]} +${items.length - 2} more`;
+                        })()}
                       </h4>
                       <p className="text-xs text-slate-500">
                         {pkg.id} •{" "}

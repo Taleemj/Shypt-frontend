@@ -12,6 +12,7 @@ import {
   FileText,
   Loader2,
   Trash2,
+  Plus,
 } from "lucide-react";
 import StatusBadge from "../../components/UI/StatusBadge";
 import { useToast } from "../../context/ToastContext";
@@ -36,14 +37,14 @@ const DECLARATION_STATUSES = ["pending", "received", "declined"];
 const ALL_POSSIBLE_STATUS_OPTIONS = [
   "pending",
   "received",
-  "consolidated",
-  "dispatched",
-  "in_transit",
-  "arrived",
-  "ready_for_release",
-  "released",
-  "delivered",
-  "declined",
+  // "consolidated",
+  // "dispatched",
+  // "in_transit",
+  // "arrived",
+  // "ready_for_release",
+  // "released",
+  // "delivered",
+  // "declined",
 ];
 
 const AdminOrderDetails: React.FC<AdminOrderDetailsProps> = ({
@@ -67,11 +68,63 @@ const AdminOrderDetails: React.FC<AdminOrderDetailsProps> = ({
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  // State for cargo items in edit modal
+  const [cargoItems, setCargoItems] = useState<
+    { cargo_item: string; value: number; weight: number }[]
+  >([]);
+
+  // Derived state for total value and weight from cargoItems
+  const totalDeclaredValue = cargoItems.reduce(
+    (sum, item) => sum + item.value,
+    0,
+  );
+  const totalEstWeight = cargoItems.reduce((sum, item) => sum + item.weight, 0);
+
+  const handleAddItem = () => {
+    setCargoItems([...cargoItems, { cargo_item: "", value: 0, weight: 0 }]);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    const newCargoItems = [...cargoItems];
+    newCargoItems.splice(index, 1);
+    setCargoItems(newCargoItems);
+  };
+
+  const handleCargoItemChange = (
+    index: number,
+    field: keyof (typeof cargoItems)[0],
+    value: string | number,
+  ) => {
+    const newCargoItems = [...cargoItems];
+    if (field === "value" || field === "weight") {
+      newCargoItems[index][field] = Number(value);
+    } else {
+      newCargoItems[index][field] = value as string;
+    }
+    setCargoItems(newCargoItems);
+  };
+
   const fetchDetails = async () => {
     try {
       setLoading(true);
       const response = await getCargoDeclaration(declarationId);
       setDeclaration(response.data);
+      // Initialize cargoItems from fetched declaration
+      if (response.data.cargo_details) {
+        if (typeof response.data.cargo_details === "string") {
+          setCargoItems([
+            {
+              cargo_item: response.data.cargo_details,
+              value: Number(response.data.value) || 0,
+              weight: Number(response.data.weight) || 0,
+            },
+          ]);
+        } else if (Array.isArray(response.data.cargo_details)) {
+          setCargoItems(response.data.cargo_details);
+        }
+      } else {
+        setCargoItems([{ cargo_item: "", value: 0, weight: 0 }]);
+      }
     } catch (err) {
       showToast("Failed to fetch declaration details.", "error");
       console.error(err);
@@ -126,13 +179,9 @@ const AdminOrderDetails: React.FC<AdminOrderDetailsProps> = ({
       const payload: UpdateCargoDeclarationPayload = {
         internal_curier: formData.get("internal_curier") as string,
         tracking_number: formData.get("tracking_number") as string,
-        cargo_details: formData.get("cargo_details") as string,
-        value: formData.get("value")
-          ? Number(formData.get("value"))
-          : undefined,
-        weight: formData.get("weight")
-          ? Number(formData.get("weight"))
-          : undefined,
+        cargo_details: cargoItems, // Use the updated cargoItems array
+        value: totalDeclaredValue, // Use the derived total
+        weight: totalEstWeight, // Use the derived total
         status: formData.get("status") as string,
       };
       await updateCargoDeclaration(declaration.id, payload);
@@ -151,7 +200,7 @@ const AdminOrderDetails: React.FC<AdminOrderDetailsProps> = ({
 
     if (
       window.confirm(
-        "Are you sure you want to delete this declaration? This action cannot be undone."
+        "Are you sure you want to delete this declaration? This action cannot be undone.",
       )
     ) {
       try {
@@ -170,7 +219,7 @@ const AdminOrderDetails: React.FC<AdminOrderDetailsProps> = ({
 
     const form = e.currentTarget;
     const fileInput = form.querySelector(
-      'input[type="file"]'
+      'input[type="file"]',
     ) as HTMLInputElement;
 
     if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
@@ -217,7 +266,7 @@ const AdminOrderDetails: React.FC<AdminOrderDetailsProps> = ({
   }
 
   const availableNextStatuses = DECLARATION_STATUSES.filter(
-    (s) => s !== declaration.status
+    (s) => s !== declaration.status,
   );
 
   const timelineSteps = [
@@ -257,7 +306,7 @@ const AdminOrderDetails: React.FC<AdminOrderDetailsProps> = ({
   ];
 
   let currentStatusIndex = timelineSteps.findIndex(
-    (step) => step.key === declaration.status.toUpperCase()
+    (step) => step.key === declaration.status.toUpperCase(),
   );
 
   // Handle cases where status from declaration is not in the timeline, e.g., a lowercase version
@@ -275,8 +324,8 @@ const AdminOrderDetails: React.FC<AdminOrderDetailsProps> = ({
       index === 0
         ? new Date(declaration.created_at).toLocaleString()
         : index <= currentStatusIndex
-        ? new Date(declaration.updated_at).toLocaleString()
-        : "-",
+          ? new Date(declaration.updated_at).toLocaleString()
+          : "-",
     loc: step.loc,
     done: index <= currentStatusIndex && declaration.status !== "declined",
   }));
@@ -442,16 +491,33 @@ const AdminOrderDetails: React.FC<AdminOrderDetailsProps> = ({
               <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div>
                   <p className="text-xs text-slate-500 uppercase">
-                    Description
+                    Itemized Cargo
                   </p>
-                  <p className="font-medium text-slate-900 mt-1">
-                    {declaration.cargo_details}
-                  </p>
+                  {declaration.cargo_details &&
+                  declaration.cargo_details.length > 0 ? (
+                    <div className="space-y-1">
+                      {declaration.cargo_details.map((item, index) => (
+                        <p key={index} className="text-sm text-slate-900">
+                          • {item.cargo_item} (Value: ${item.value.toFixed(2)},
+                          Weight: {item.weight} kg)
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="font-medium text-slate-900 mt-1">
+                      No cargo details provided
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase">Weight</p>
+                  <p className="text-xs text-slate-500 uppercase">
+                    Total Weight
+                  </p>
                   <p className="font-medium text-slate-900 mt-1">
-                    {declaration.weight ? `${declaration.weight} kg` : "N/A"}
+                    {(declaration.cargo_details || [])
+                      .reduce((sum, item) => sum + item.weight, 0)
+                      .toFixed(2)}{" "}
+                    kg
                   </p>
                 </div>
                 <div>
@@ -467,7 +533,10 @@ const AdminOrderDetails: React.FC<AdminOrderDetailsProps> = ({
                     Declared Value
                   </p>
                   <p className="font-medium text-slate-900 mt-1">
-                    $ {Number(declaration.value).toFixed(2)}
+                    ${" "}
+                    {(declaration.cargo_details || [])
+                      .reduce((sum, item) => sum + item.value, 0)
+                      .toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -496,7 +565,7 @@ const AdminOrderDetails: React.FC<AdminOrderDetailsProps> = ({
                         </div>
                       </div>
                       <a
-                        href={import.meta.env.VITE_API_URL + "/" + file}
+                        href={import.meta.env.VITE_API_URL + "/storage/" + file}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm text-blue-600 hover:underline"
@@ -621,36 +690,102 @@ const AdminOrderDetails: React.FC<AdminOrderDetailsProps> = ({
             <label className="block text-sm font-medium text-slate-700">
               Cargo Details
             </label>
-            <textarea
-              name="cargo_details"
-              defaultValue={declaration?.cargo_details}
-              className="mt-1 w-full border border-slate-300 rounded-md p-2 bg-white text-slate-900"
-              rows={3}
-            ></textarea>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700">
-                Value
-              </label>
-              <input
-                name="value"
-                type="number"
-                defaultValue={declaration?.value}
-                className="mt-1 w-full border border-slate-300 rounded-md p-2 bg-white text-slate-900"
-              />
+            <div className="space-y-4">
+              {cargoItems.map((item, index) => (
+                <div
+                  key={index}
+                  className="p-4 border border-slate-200 rounded-lg relative space-y-3 bg-slate-50"
+                >
+                  {cargoItems.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(index)}
+                      className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500"
+                    >
+                      X
+                    </button>
+                  )}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Cargo Item Description{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={item.cargo_item}
+                      onChange={(e) =>
+                        handleCargoItemChange(
+                          index,
+                          "cargo_item",
+                          e.target.value,
+                        )
+                      }
+                      required
+                      placeholder="e.g. Blue Jeans"
+                      className="mt-1 w-full border border-slate-300 rounded-md p-2 bg-white text-slate-900"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Value ($) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={item.value}
+                        onChange={(e) =>
+                          handleCargoItemChange(index, "value", e.target.value)
+                        }
+                        required
+                        placeholder="0.00"
+                        className="mt-1 w-full border border-slate-300 rounded-md p-2 bg-white text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Weight (kg) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={item.weight}
+                        onChange={(e) =>
+                          handleCargoItemChange(index, "weight", e.target.value)
+                        }
+                        required
+                        placeholder="0.0"
+                        className="mt-1 w-full border border-slate-300 rounded-md p-2 bg-white text-slate-900"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={handleAddItem}
+                className="mt-4 text-primary-600 font-semibold flex items-center text-sm"
+              >
+                <Plus size={16} className="mr-2" /> Add Another Item
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">
-                Weight (kg)
-              </label>
-              <input
-                name="weight"
-                type="number"
-                step="0.01"
-                defaultValue={declaration?.weight}
-                className="mt-1 w-full border border-slate-300 rounded-md p-2 bg-white text-slate-900"
-              />
+            <div className="grid grid-cols-2 gap-4 mt-6 p-4 bg-slate-100 rounded-lg border border-slate-200">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">
+                  Total Declared Value ($)
+                </label>
+                <p className="text-lg font-bold text-slate-900">
+                  $ {totalDeclaredValue.toFixed(2)}
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">
+                  Total Est. Weight (kg)
+                </label>
+                <p className="text-lg font-bold text-slate-900">
+                  {totalEstWeight.toFixed(2)} kg
+                </p>
+              </div>
             </div>
           </div>
           <div>

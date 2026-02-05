@@ -12,6 +12,12 @@ export interface Location {
   //...
 }
 
+export interface CargoItemPayload {
+  cargo_item: string;
+  value: number;
+  weight: number;
+}
+
 export interface CargoDeclaration {
   id: number;
   created_at: string;
@@ -20,7 +26,7 @@ export interface CargoDeclaration {
   warehouse_location_id: number;
   internal_curier: string;
   tracking_number: string;
-  cargo_details: string;
+  cargo_details: CargoItemPayload[]; // Changed to array of objects
   value: string | number;
   weight: string | number;
   status: "pending" | "received" | "declined" | string;
@@ -44,8 +50,8 @@ export interface CreateCargoDeclarationPayload {
   warehouse_location_id?: number;
   internal_curier?: string;
   tracking_number?: string;
-  cargo_details: string;
-  value: number;
+  cargo_details: CargoItemPayload[];
+  value?: number;
   weight?: number;
   insured?: boolean;
 }
@@ -57,7 +63,7 @@ export interface CreateCargoDeclarationResponse extends CargoApiResponse {
 export interface UpdateCargoDeclarationPayload {
   internal_curier?: string;
   tracking_number?: string;
-  cargo_details?: string;
+  cargo_details?: CargoItemPayload[];
   value?: number;
   weight?: number;
   status?: "pending" | "received" | "declined" | string;

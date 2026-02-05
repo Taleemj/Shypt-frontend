@@ -230,7 +230,7 @@ const OrderDetailsWrapper = () => {
   return (
     <OrderDetails
       declarationId={orderId || ""}
-      onBack={() => navigate("/admin/cargo-declarations")}
+      onBack={() => navigate("/admin/requests")}
     />
   );
 };

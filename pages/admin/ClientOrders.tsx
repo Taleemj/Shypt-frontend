@@ -184,7 +184,7 @@ const ClientOrders: React.FC = () => {
             className="bg-slate-800 text-white px-4 py-2 rounded-md text-sm hover:bg-slate-700 transition flex items-center shadow-sm"
           >
             <Plus size={16} className="mr-2" />
-            Record Shipment
+            Record Order
           </button>
         }
       />
@@ -215,7 +215,19 @@ const ClientOrders: React.FC = () => {
               </option>
               {cargoDeclarations.map((d) => (
                 <option key={d.id} value={d.id}>
-                  ID: {d.id} - {d.cargo_details} ({d.user.email})
+                  ID: {d.id} -{(() => {
+                  if (!d.cargo_details || d.cargo_details.length === 0) {
+                    return "No cargo details";
+                  }
+                  const items = d.cargo_details.map((detail) => detail.cargo_item);
+                  if (items.length === 1) {
+                    return items[0];
+                  }
+                  if (items.length === 2) {
+                    return `${items[0]}, ${items[1]}`;
+                  }
+                  return `${items[0]}, ${items[1]} +${items.length - 2} more`;
+                })()} ({d.user.email})
                 </option>
               ))}
             </select>

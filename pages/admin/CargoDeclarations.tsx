@@ -58,8 +58,10 @@ const CargoDeclarations: React.FC = () => {
 
   // Form State for ADD mode
   const [selectedWarehouse, setSelectedWarehouse] = useState("");
-  const [declaredValue, setDeclaredValue] = useState<string>("");
-  const [estWeight, setEstWeight] = useState<string>("");
+  // Replaced declaredValue and estWeight with cargoItems
+  const [cargoItems, setCargoItems] = useState<
+    { cargo_item: string; value: number; weight: number }[]
+  >([{ cargo_item: "", value: 0, weight: 0 }]); // Initialize with one empty item
   const [complianceAgreed, setComplianceAgreed] = useState(false);
   const [isInsured, setIsInsured] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
@@ -68,17 +70,49 @@ const CargoDeclarations: React.FC = () => {
   // Bulk Action State
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
+  // Derived state for total value and weight
+  const totalDeclaredValue = cargoItems.reduce(
+    (sum, item) => sum + item.value,
+    0,
+  );
+  const totalEstWeight = cargoItems.reduce((sum, item) => sum + item.weight, 0);
+
   const triggerNav = (path: string) => {
     window.dispatchEvent(new CustomEvent("app-navigate", { detail: path }));
   };
 
+  const handleAddItem = () => {
+    setCargoItems([...cargoItems, { cargo_item: "", value: 0, weight: 0 }]);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    const newCargoItems = [...cargoItems];
+    newCargoItems.splice(index, 1);
+    setCargoItems(newCargoItems);
+  };
+
+  const handleCargoItemChange = (
+    index: number,
+    field: keyof (typeof cargoItems)[0],
+    value: string | number,
+  ) => {
+    const newCargoItems = [...cargoItems];
+    // Ensure value is correctly typed before assignment
+    if (field === "value" || field === "weight") {
+      newCargoItems[index][field] = Number(value);
+    } else {
+      newCargoItems[index][field] = value as string;
+    }
+    setCargoItems(newCargoItems);
+  };
+
   const resetForm = () => {
     setSelectedWarehouse("");
-    setDeclaredValue("");
-    setEstWeight("");
+    setCargoItems([{ cargo_item: "", value: 0, weight: 0 }]); // Reset to one empty item
     setComplianceAgreed(false);
     setIsInsured(false);
     setSelectedUserId("");
+    setSelectedFiles(null);
   };
 
   const fetchData = async () => {
@@ -133,6 +167,23 @@ const CargoDeclarations: React.FC = () => {
     setEditingDeclaration(declaration);
     setFormMode("EDIT");
     setIsInsured(declaration.is_insured || false);
+
+    // Initialize cargoItems for editing
+    if (typeof declaration.cargo_details === "string") {
+      // Assuming old cargo_details string can be converted to a single item
+      setCargoItems([
+        {
+          cargo_item: declaration.cargo_details,
+          value: Number(declaration.value) || 0,
+          weight: Number(declaration.weight) || 0,
+        },
+      ]);
+    } else if (Array.isArray(declaration.cargo_details)) {
+      setCargoItems(declaration.cargo_details);
+    } else {
+      setCargoItems([{ cargo_item: "", value: 0, weight: 0 }]);
+    }
+
     setIsFormOpen(true);
   };
 
@@ -157,9 +208,16 @@ const CargoDeclarations: React.FC = () => {
           );
           return;
         }
-        if (Number(declaredValue) <= 0) {
+        if (totalDeclaredValue <= 0) {
           showToast(
             "Please provide a valid declared value for customs.",
+            "error",
+          );
+          return;
+        }
+        if (totalEstWeight <= 0) {
+          showToast(
+            "Please provide a valid estimated weight for customs.",
             "error",
           );
           return;
@@ -182,9 +240,9 @@ const CargoDeclarations: React.FC = () => {
           warehouse_location_id: selectedWh.id,
           internal_curier: formData.get("courier") as string,
           tracking_number: formData.get("tracking") as string,
-          cargo_details: formData.get("desc") as string,
-          value: Number(declaredValue),
-          weight: estWeight ? Number(estWeight) : undefined,
+          cargo_details: cargoItems, // Use the new cargoItems array
+          value: totalDeclaredValue,   // Use the derived total
+          weight: totalEstWeight,      // Use the derived total
           insured: isInsured,
         };
 
@@ -219,13 +277,9 @@ const CargoDeclarations: React.FC = () => {
         const payload: UpdateCargoDeclarationPayload = {
           internal_curier: formData.get("internal_curier") as string,
           tracking_number: formData.get("tracking_number") as string,
-          cargo_details: formData.get("cargo_details") as string,
-          value: formData.get("value")
-            ? Number(formData.get("value"))
-            : undefined,
-          weight: formData.get("weight")
-            ? Number(formData.get("weight"))
-            : undefined,
+          cargo_details: cargoItems, // Use the updated cargoItems array
+          value: totalDeclaredValue,   // Use the derived total
+          weight: totalEstWeight,      // Use the derived total
           status: formData.get("status") as string,
           is_insured: editingDeclaration.is_insured,
         };
@@ -278,7 +332,19 @@ const CargoDeclarations: React.FC = () => {
       accessor: (cd) => (
         <div className="max-w-xs">
           <div className="font-semibold text-slate-800 truncate">
-            {cd.cargo_details}
+            {(() => {
+                  if (!cd.cargo_details || cd.cargo_details.length === 0) {
+                    return "No cargo details";
+                  }
+                  const items = cd.cargo_details.map((detail) => detail.cargo_item);
+                  if (items.length === 1) {
+                    return items[0];
+                  }
+                  if (items.length === 2) {
+                    return `${items[0]}, ${items[1]}`;
+                  }
+                  return `${items[0]}, ${items[1]} +${items.length - 2} more`;
+                })()}
           </div>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono font-bold">
@@ -379,7 +445,7 @@ const CargoDeclarations: React.FC = () => {
         </label>
         <textarea
           name="delivery_details"
-          defaultValue={editingDeclaration?.cargo_details}
+          // defaultValue={editingDeclaration?.cargo_details}
           className="mt-1 w-full border border-slate-300 rounded-md p-2 bg-white text-slate-900"
           rows={3}
         ></textarea>
@@ -575,60 +641,105 @@ const CargoDeclarations: React.FC = () => {
 
         <div className="space-y-6">
           <label className="block text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
-            4. Delivery Details
+            4. Cargo Details
           </label>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-2">
-              Detailed Description <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              name="desc"
-              required
-              rows={4}
-              placeholder="Please itemize everything inside (e.g. 2x Blue Jeans, 1x Sony Headphones, 3x Vitamin C supplements)"
-              className="w-full p-4 border border-slate-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-primary-500 outline-none resize-none"
-            ></textarea>
+          <div className="space-y-4">
+            {cargoItems.map((item, index) => (
+              <div
+                key={index}
+                className="p-4 border border-slate-200 rounded-lg relative space-y-3 bg-slate-50"
+              >
+                {cargoItems.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveItem(index)}
+                    className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500"
+                  >
+                    X
+                  </button>
+                )}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Cargo Item Description{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={item.cargo_item}
+                    onChange={(e) =>
+                      handleCargoItemChange(
+                        index,
+                        "cargo_item",
+                        e.target.value,
+                      )
+                    }
+                    required
+                    placeholder="e.g. Blue Jeans"
+                    className="w-full border border-slate-300 rounded p-2 bg-white text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Value ($) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={item.value}
+                      onChange={(e) =>
+                        handleCargoItemChange(index, "value", e.target.value)
+                      }
+                      required
+                      placeholder="0.00"
+                      className="w-full border border-slate-300 rounded p-2 bg-white text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Weight (kg) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={item.weight}
+                      onChange={(e) =>
+                        handleCargoItemChange(index, "weight", e.target.value)
+                      }
+                      required
+                      placeholder="0.0"
+                      className="w-full border border-slate-300 rounded p-2 bg-white text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={handleAddItem}
+              className="mt-4 text-primary-600 font-semibold flex items-center text-sm"
+            >
+              <Plus size={16} className="mr-2" /> Add Another Item
+            </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 mt-6 p-4 bg-slate-100 rounded-lg border border-slate-200">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-2">
-                Declared Value ($)
+                Total Declared Value ($)
               </label>
-              <div className="relative">
-                <DollarSign
-                  className="absolute left-3 top-3 text-slate-400"
-                  size={16}
-                />
-                <input
-                  type="number"
-                  value={declaredValue}
-                  onChange={(e) => setDeclaredValue(e.target.value)}
-                  required
-                  placeholder="0.00"
-                  className="w-full pl-9 pr-4 py-3 border border-slate-200 rounded-xl bg-white text-sm font-bold focus:ring-2 focus:ring-primary-500 outline-none"
-                />
-              </div>
+              <p className="text-lg font-bold text-slate-900">
+                $ {totalDeclaredValue.toFixed(2)}
+              </p>
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-2">
-                Est. Weight (kg)
+                Total Est. Weight (kg)
               </label>
-              <div className="relative">
-                <Scale
-                  className="absolute left-3 top-3 text-slate-400"
-                  size={16}
-                />
-                <input
-                  type="number"
-                  step="0.01"
-                  value={estWeight}
-                  onChange={(e) => setEstWeight(e.target.value)}
-                  placeholder="0.0"
-                  className="w-full pl-9 pr-4 py-3 border border-slate-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-                />
-              </div>
+              <p className="text-lg font-bold text-slate-900">
+                {totalEstWeight.toFixed(2)} kg
+              </p>
             </div>
           </div>
         </div>
@@ -836,7 +947,7 @@ const CargoDeclarations: React.FC = () => {
             className="bg-slate-800 text-white px-4 py-2 rounded-md text-sm hover:bg-slate-700 transition flex items-center shadow-sm"
           >
             <Plus size={16} className="mr-2" />
-            Create Client Shipment
+            Create Client Order
           </button>
         }
       />

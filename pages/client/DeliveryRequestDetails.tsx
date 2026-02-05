@@ -153,7 +153,24 @@ const DeliveryRequestDetails: React.FC<OrderDetailsProps> = ({
           <div className="flex items-center gap-2 mt-1">
             <StatusBadge status={declaration.status.toUpperCase()} />
             <span className="text-sm text-slate-500">
-              {declaration.cargo_details}
+              {(() => {
+                if (
+                  !declaration.cargo_details ||
+                  declaration.cargo_details.length === 0
+                ) {
+                  return "No cargo details";
+                }
+                const items = declaration.cargo_details.map(
+                  (detail) => detail.cargo_item,
+                );
+                if (items.length === 1) {
+                  return items[0];
+                }
+                if (items.length === 2) {
+                  return `${items[0]}, ${items[1]}`;
+                }
+                return `${items[0]}, ${items[1]} +${items.length - 2} more`;
+              })()}
             </span>
           </div>
         </div>
@@ -240,6 +257,26 @@ const DeliveryRequestDetails: React.FC<OrderDetailsProps> = ({
             <div className="p-6 grid grid-cols-2 gap-6 text-sm">
               <div>
                 <span className="block text-slate-500 text-xs uppercase font-bold mb-1">
+                  Itemized Cargo
+                </span>
+                {declaration.cargo_details &&
+                declaration.cargo_details.length > 0 ? (
+                  <div className="space-y-1">
+                    {declaration.cargo_details.map((item, index) => (
+                      <p key={index} className="text-sm text-slate-900">
+                        • {item.cargo_item} (Value: ${item.value.toFixed(2)},
+                        Weight: {item.weight} kg)
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="font-medium text-slate-900 mt-1">
+                    No cargo details provided
+                  </p>
+                )}
+              </div>
+              <div>
+                <span className="block text-slate-500 text-xs uppercase font-bold mb-1">
                   Tracking Number
                 </span>
                 <span className="font-medium text-slate-900 bg-slate-100 px-2 py-1 rounded">
@@ -248,10 +285,24 @@ const DeliveryRequestDetails: React.FC<OrderDetailsProps> = ({
               </div>
               <div>
                 <span className="block text-slate-500 text-xs uppercase font-bold mb-1">
-                  Weight
+                  Declared Value
                 </span>
                 <span className="font-medium text-slate-900">
-                  {declaration.weight ? `${declaration.weight}kg` : "N/A"}
+                  ${" "}
+                  {(declaration.cargo_details || [])
+                    .reduce((sum, item) => sum + item.value, 0)
+                    .toFixed(2)}
+                </span>
+              </div>
+              <div>
+                <span className="block text-slate-500 text-xs uppercase font-bold mb-1">
+                  Total Weight
+                </span>
+                <span className="font-medium text-slate-900">
+                  {(declaration.cargo_details || [])
+                    .reduce((sum, item) => sum + item.weight, 0)
+                    .toFixed(2)}
+                  kg
                 </span>
               </div>
               <div>
@@ -285,14 +336,14 @@ const DeliveryRequestDetails: React.FC<OrderDetailsProps> = ({
                     <div className="flex items-center">
                       <FileText className="text-red-500 mr-3" size={20} />
                       <div>
-                        <p className="text-sm font-medium text-slate-700">
+                        {/* <p className="text-sm font-medium text-slate-700">
                           {file.split("/").pop()}
-                        </p>
+                        </p> */}
                         <p className="text-xs text-slate-500">Attached File</p>
                       </div>
                     </div>
                     <a
-                      href={file}
+                      href={import.meta.env.VITE_API_URL + "/storage/" + file}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-blue-600 hover:underline"
