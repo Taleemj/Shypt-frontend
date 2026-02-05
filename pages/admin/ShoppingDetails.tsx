@@ -46,8 +46,8 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
 
   const { getAssistedShopping, updateAssistedShopping } = useAssistedShopping();
 
-  const formatUgx = (amount: number) => {
-    return `UGX ${amount.toLocaleString("en-US", {
+  const formatCurrency = (amount: number) => {
+    return `$ ${amount.toLocaleString("en-US", {
       maximumFractionDigits: 0,
     })}`;
   };
@@ -337,13 +337,13 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                         {quote.item_name} (x{quote.quantity})
                       </span>
                       <span className="font-mono">
-                        {formatUgx(quote.unit_price * quote.quantity)}
+                        {formatCurrency(quote.unit_price * quote.quantity)}
                       </span>
                     </div>
                   ))}
                   <div className="flex justify-between font-black text-xl text-slate-900 border-t border-slate-200 pt-4 mt-2 print:border-slate-800">
                     <span>TOTAL COLLECTED</span>
-                    <span>{formatUgx(quoteTotal)}</span>
+                    <span>{formatCurrency(quoteTotal)}</span>
                   </div>
                 </div>
               </div>{" "}

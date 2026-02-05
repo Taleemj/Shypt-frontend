@@ -73,8 +73,8 @@ const AssistedShopping: React.FC = () => {
   const { fetchWareHouseLocations } = useWareHouse();
   const { createCargoDeclaration, uploadCargoDeclarationFiles } = useCargo();
 
-  const formatUgx = (amount: number) => {
-    return `UGX ${amount.toLocaleString("en-US", {
+  const formatCurrency = (amount: number) => {
+    return `$ ${amount.toLocaleString("en-US", {
       maximumFractionDigits: 0,
     })}`;
   };
@@ -426,7 +426,7 @@ const AssistedShopping: React.FC = () => {
           (acc, q) => acc + q.unit_price * q.quantity,
           0,
         );
-        return total ? formatUgx(total) : "-";
+        return total ? formatCurrency(total) : "-";
       },
       className: "text-right font-bold",
     },
@@ -514,7 +514,7 @@ const AssistedShopping: React.FC = () => {
                 <div className="grid grid-cols-1 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                      Item Net Cost (UGX)
+                      Item Net Cost ($)
                     </label>
                     <input
                       required
@@ -535,7 +535,7 @@ const AssistedShopping: React.FC = () => {
             ))}
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                Total Domestic Shipping (UGX)
+                Total Domestic Shipping ($)
               </label>
               <input
                 required
@@ -554,7 +554,7 @@ const AssistedShopping: React.FC = () => {
             <div className="flex justify-between">
               <span>Items Subtotal:</span>
               <span>
-                {formatUgx(
+                {formatCurrency(
                   itemQuotes.reduce(
                     (acc, item) => acc + item.netCost * item.quantity,
                     0,
@@ -564,12 +564,12 @@ const AssistedShopping: React.FC = () => {
             </div>
             <div className="flex justify-between">
               <span>Domestic Shipping:</span>
-              <span>{formatUgx(domesticShippingCost)}</span>
+              <span>{formatCurrency(domesticShippingCost)}</span>
             </div>
             <div className="flex justify-between text-primary-600 font-bold">
               <span>Service Fee (10%):</span>
               <span>
-                {formatUgx(
+                {formatCurrency(
                   (itemQuotes.reduce(
                     (acc, item) => acc + item.netCost * item.quantity,
                     0,
@@ -582,7 +582,7 @@ const AssistedShopping: React.FC = () => {
             <div className="flex justify-between text-lg font-black text-slate-900 border-t pt-2">
               <span>Final Quote:</span>
               <span>
-                {formatUgx(
+                {formatCurrency(
                   (itemQuotes.reduce(
                     (acc, item) => acc + item.netCost * item.quantity,
                     0,
@@ -747,7 +747,7 @@ const AssistedShopping: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-2">
-                    Declared Value (UGX)
+                    Declared Value ($)
                   </label>
                   <div className="relative">
                     <DollarSign
@@ -893,3 +893,4 @@ const AssistedShopping: React.FC = () => {
 };
 
 export default AssistedShopping;
+

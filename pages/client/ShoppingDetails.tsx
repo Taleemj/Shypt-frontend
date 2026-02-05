@@ -38,8 +38,8 @@ const ClientShoppingDetails: React.FC<ClientShoppingDetailsProps> = ({
     window.dispatchEvent(new CustomEvent("app-navigate", { detail: path }));
   };
 
-  const formatUgx = (amount: number) => {
-    return `UGX ${amount.toLocaleString("en-US", {
+  const formatCurrency = (amount: number) => {
+    return `$ ${amount.toLocaleString("en-US", {
       maximumFractionDigits: 0,
     })}`;
   };
@@ -74,7 +74,7 @@ const ClientShoppingDetails: React.FC<ClientShoppingDetailsProps> = ({
       ) || 0;
 
     if (
-      confirm(`Accept quote and proceed to invoice for ${formatUgx(total)}?`)
+      confirm(`Accept quote and proceed to invoice for ${formatCurrency(total)}?`)
     ) {
       setIsPaying(true);
       try {
@@ -83,7 +83,7 @@ const ClientShoppingDetails: React.FC<ClientShoppingDetailsProps> = ({
           user_id: request.user.id,
           type: "OTHER",
           due_date: new Date().toISOString().split("T")[0],
-          currency: "UGX",
+          currency: "USD",
         });
         // @ts-ignore
         const invoice = invoiceResponse.data;
@@ -319,14 +319,14 @@ const ClientShoppingDetails: React.FC<ClientShoppingDetailsProps> = ({
                         {item.item_name} (x{item.quantity})
                       </span>
                       <span className="font-mono">
-                        {formatUgx(item.unit_price * item.quantity)}
+                        {formatCurrency(item.unit_price * item.quantity)}
                       </span>
                     </div>
                   ))}
                   <div className="border-t border-slate-200 pt-3 mt-2 flex justify-between font-bold text-lg">
                     <span>Total Payable</span>
                     <span className="text-primary-600">
-                      {formatUgx(quoteTotal)}
+                      {formatCurrency(quoteTotal)}
                     </span>
                   </div>
 

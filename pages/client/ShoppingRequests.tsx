@@ -156,8 +156,8 @@ const ShoppingRequests: React.FC = () => {
     }, 500);
   };
 
-  const formatUgx = (amount: number) => {
-    return `UGX ${amount.toLocaleString("en-US", {
+  const formatCurrency = (amount: number) => {
+    return `$ ${amount.toLocaleString("en-US", {
       maximumFractionDigits: 0,
     })}`;
   };
@@ -240,7 +240,7 @@ const ShoppingRequests: React.FC = () => {
           (acc, q) => acc + q.unit_price * q.quantity,
           0,
         );
-        return quoteAmount ? formatUgx(quoteAmount) : "-";
+        return quoteAmount ? formatCurrency(quoteAmount) : "-";
       },
       className: "text-right font-medium",
     },
