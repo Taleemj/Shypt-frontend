@@ -337,7 +337,6 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
     try {
       setLoading(true);
       const response = await getOrder(Number(orderId));
-      console.log("order details", response.data);
       setOrder(response.data);
     } catch (err) {
       showToast("Failed to fetch order details.", "error");
