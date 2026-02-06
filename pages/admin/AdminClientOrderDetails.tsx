@@ -267,18 +267,18 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
 
   const [isEditPackageModalOpen, setEditPackageModalOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<PackageType | null>(
-    null
+    null,
   );
 
   const [isUploadModalOpen, setUploadModalOpen] = useState(false);
   const [uploadingPackageId, setUploadingPackageId] = useState<number | null>(
-    null
+    null,
   );
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
 
   const [isViewPackageModalOpen, setViewPackageModalOpen] = useState(false);
   const [viewingPackage, setViewingPackage] = useState<PackageType | null>(
-    null
+    null,
   );
 
   const triggerNav = (path: string) => {
@@ -459,7 +459,7 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
       if (!locationId) {
         showToast(
           "Order has no location information. Cannot add package.",
-          "error"
+          "error",
         );
         setIsAddingPackage(false);
         return;
@@ -498,7 +498,7 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
         `Failed to add package: ${
           "message" in error ? error.message : "Unknown error"
         }`,
-        "error"
+        "error",
       );
     } finally {
       setIsAddingPackage(false);
@@ -545,7 +545,7 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
 
     if (
       window.confirm(
-        "Are you sure you want to delete this order? This action cannot be undone."
+        "Are you sure you want to delete this order? This action cannot be undone.",
       )
     ) {
       try {
@@ -614,7 +614,7 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
   ];
 
   let currentStatusIndex = timelineSteps.findIndex(
-    (step) => step.key === order.status.toUpperCase()
+    (step) => step.key === order.status.toUpperCase(),
   );
 
   const timeline = timelineSteps.map((step, index) => ({
@@ -623,8 +623,8 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
       index === 0
         ? new Date(order.created_at).toLocaleString()
         : index <= currentStatusIndex
-        ? new Date(order.updated_at).toLocaleString()
-        : "-",
+          ? new Date(order.updated_at).toLocaleString()
+          : "-",
     loc: step.loc,
     done: index <= currentStatusIndex,
   }));
@@ -691,14 +691,16 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
         >
           <Package size={14} className="mr-2" /> Add Package
         </button>
-        <button
-          onClick={() => setIsCreateInvoiceModalOpen(true)}
-          disabled={isGeneratingInvoice}
-          className="flex items-center px-3 py-1.5 bg-slate-600 hover:bg-slate-500 rounded text-sm transition font-medium disabled:opacity-50"
-        >
-          <FileText size={14} className="mr-2" />
-          {isGeneratingInvoice ? "Generating..." : "Generate Invoice"}
-        </button>
+        {order.status !== "PENDING" && (
+          <button
+            onClick={() => setIsCreateInvoiceModalOpen(true)}
+            disabled={isGeneratingInvoice}
+            className="flex items-center px-3 py-1.5 bg-slate-600 hover:bg-slate-500 rounded text-sm transition font-medium disabled:opacity-50"
+          >
+            <FileText size={14} className="mr-2" />
+            {isGeneratingInvoice ? "Generating..." : "Generate Invoice"}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:block">

@@ -77,7 +77,7 @@ const ReceiptFlow: React.FC<ReceiptFlowProps> = ({
         <form onSubmit={handleReceipt} className="space-y-4">
           <div className="bg-blue-50 p-4 rounded border border-blue-100 mb-4">
             <label className="block text-sm font-bold text-blue-900 mb-2">
-              Link to Order
+              Link to Shipment
             </label>
             <select
               value={selectedOrderId}
@@ -87,7 +87,7 @@ const ReceiptFlow: React.FC<ReceiptFlowProps> = ({
               <option value="">-- Manual Entry / No Pre-Alert --</option>
               {pendingOrders.map((order) => (
                 <option key={order.id} value={order.id}>
-                  Order #{order.id} - {order.user.full_name}
+                  Shipment #{order.tracking_number} - {order.user.full_name}
                 </option>
               ))}
             </select>

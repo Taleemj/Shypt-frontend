@@ -166,8 +166,10 @@ const ClientOrders: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Client Orders</h2>
-          <p className="text-slate-500 text-sm">Manage all client orders.</p>
+          <h2 className="text-2xl font-bold text-slate-800">
+            Client Shipments
+          </h2>
+          <p className="text-slate-500 text-sm">Manage all client shipments.</p>
         </div>
       </div>
 
@@ -176,7 +178,7 @@ const ClientOrders: React.FC = () => {
         columns={columns}
         loading={loading}
         onRowClick={(order) => triggerNav(`/admin/client-orders/${order.id}`)}
-        title="All Orders"
+        title="All Shipments"
         searchPlaceholder="Search by tracking #, client..."
         primaryAction={
           <button
@@ -184,7 +186,7 @@ const ClientOrders: React.FC = () => {
             className="bg-slate-800 text-white px-4 py-2 rounded-md text-sm hover:bg-slate-700 transition flex items-center shadow-sm"
           >
             <Plus size={16} className="mr-2" />
-            Record Order
+            Record Shipment
           </button>
         }
       />
@@ -192,7 +194,7 @@ const ClientOrders: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Create New Order from Cargo Declaration"
+        title="Create New Shipment"
         size="md"
       >
         <div className="space-y-4">
@@ -201,7 +203,7 @@ const ClientOrders: React.FC = () => {
               htmlFor="declaration"
               className="block text-sm font-medium text-slate-700"
             >
-              Select Cargo Declaration
+              Select Order (Pre-Alert)
             </label>
             <select
               id="declaration"
@@ -211,23 +213,27 @@ const ClientOrders: React.FC = () => {
               defaultValue=""
             >
               <option value="" disabled>
-                Select a declaration
+                Select a Order
               </option>
               {cargoDeclarations.map((d) => (
                 <option key={d.id} value={d.id}>
-                  ID: {d.id} -{(() => {
-                  if (!d.cargo_details || d.cargo_details.length === 0) {
-                    return "No cargo details";
-                  }
-                  const items = d.cargo_details.map((detail) => detail.cargo_item);
-                  if (items.length === 1) {
-                    return items[0];
-                  }
-                  if (items.length === 2) {
-                    return `${items[0]}, ${items[1]}`;
-                  }
-                  return `${items[0]}, ${items[1]} +${items.length - 2} more`;
-                })()} ({d.user.email})
+                  ID: {d.id} -
+                  {(() => {
+                    if (!d.cargo_details || d.cargo_details.length === 0) {
+                      return "No cargo details";
+                    }
+                    const items = d.cargo_details.map(
+                      (detail) => detail.cargo_item,
+                    );
+                    if (items.length === 1) {
+                      return items[0];
+                    }
+                    if (items.length === 2) {
+                      return `${items[0]}, ${items[1]}`;
+                    }
+                    return `${items[0]}, ${items[1]} +${items.length - 2} more`;
+                  })()}{" "}
+                  ({d.user.email})
                 </option>
               ))}
             </select>

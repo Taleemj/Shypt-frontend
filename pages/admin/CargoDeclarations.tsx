@@ -128,7 +128,7 @@ const CargoDeclarations: React.FC = () => {
       if (declarationsRes.status === "fulfilled") {
         setDeclarations(declarationsRes.value.data);
       } else {
-        showToast("Failed to fetch Client Shipments", "error");
+        showToast("Failed to fetch Client Orders", "error");
       }
       if (warehousesRes.status === "fulfilled") {
         setWarehouses(warehousesRes.value.data);
@@ -241,8 +241,8 @@ const CargoDeclarations: React.FC = () => {
           internal_curier: formData.get("courier") as string,
           tracking_number: formData.get("tracking") as string,
           cargo_details: cargoItems, // Use the new cargoItems array
-          value: totalDeclaredValue,   // Use the derived total
-          weight: totalEstWeight,      // Use the derived total
+          value: totalDeclaredValue, // Use the derived total
+          weight: totalEstWeight, // Use the derived total
           insured: isInsured,
         };
 
@@ -256,7 +256,7 @@ const CargoDeclarations: React.FC = () => {
         }
 
         const response = await createCargoDeclaration(payload);
-        showToast("Client Shipment created successfully!", "success");
+        showToast("Client Order created successfully!", "success");
 
         if (selectedFiles && selectedFiles.length > 0 && response.data.id) {
           const uploadFormData = new FormData();
@@ -278,8 +278,8 @@ const CargoDeclarations: React.FC = () => {
           internal_curier: formData.get("internal_curier") as string,
           tracking_number: formData.get("tracking_number") as string,
           cargo_details: cargoItems, // Use the updated cargoItems array
-          value: totalDeclaredValue,   // Use the derived total
-          weight: totalEstWeight,      // Use the derived total
+          value: totalDeclaredValue, // Use the derived total
+          weight: totalEstWeight, // Use the derived total
           status: formData.get("status") as string,
           is_insured: editingDeclaration.is_insured,
         };
@@ -300,7 +300,7 @@ const CargoDeclarations: React.FC = () => {
 
   const columns: Column<CargoDeclaration>[] = [
     {
-      header: "Shipment ID",
+      header: "Order ID",
       accessor: (declaration) => (
         <span className="text-primary-600 font-medium hover:underline">
           {declaration.id}
@@ -333,18 +333,18 @@ const CargoDeclarations: React.FC = () => {
         <div className="max-w-xs">
           <div className="font-semibold text-slate-800 truncate">
             {(() => {
-                  if (!cd.cargo_details || cd.cargo_details.length === 0) {
-                    return "No cargo details";
-                  }
-                  const items = cd.cargo_details.map((detail) => detail.cargo_item);
-                  if (items.length === 1) {
-                    return items[0];
-                  }
-                  if (items.length === 2) {
-                    return `${items[0]}, ${items[1]}`;
-                  }
-                  return `${items[0]}, ${items[1]} +${items.length - 2} more`;
-                })()}
+              if (!cd.cargo_details || cd.cargo_details.length === 0) {
+                return "No cargo details";
+              }
+              const items = cd.cargo_details.map((detail) => detail.cargo_item);
+              if (items.length === 1) {
+                return items[0];
+              }
+              if (items.length === 2) {
+                return `${items[0]}, ${items[1]}`;
+              }
+              return `${items[0]}, ${items[1]} +${items.length - 2} more`;
+            })()}
           </div>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono font-bold">
@@ -668,11 +668,7 @@ const CargoDeclarations: React.FC = () => {
                     type="text"
                     value={item.cargo_item}
                     onChange={(e) =>
-                      handleCargoItemChange(
-                        index,
-                        "cargo_item",
-                        e.target.value,
-                      )
+                      handleCargoItemChange(index, "cargo_item", e.target.value)
                     }
                     required
                     placeholder="e.g. Blue Jeans"
@@ -889,7 +885,7 @@ const CargoDeclarations: React.FC = () => {
               <Loader2 className="animate-spin h-5 w-5 mr-3" /> Submitting...
             </>
           ) : (
-            "Submit Client Shipment"
+            "Submit Client Order"
           )}
         </button>
       </div>
@@ -900,12 +896,8 @@ const CargoDeclarations: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">
-            Client Shipments
-          </h2>
-          <p className="text-slate-500 text-sm">
-            Manage all client Client Shipments.
-          </p>
+          <h2 className="text-2xl font-bold text-slate-800">Client Orders</h2>
+          <p className="text-slate-500 text-sm">Manage all client Orders.</p>
         </div>
       </div>
 
@@ -955,7 +947,7 @@ const CargoDeclarations: React.FC = () => {
       <Modal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={formMode === "ADD" ? "Create New Shipment" : "Edit Shipment"}
+        title={formMode === "ADD" ? "Create New Order" : "Edit Order"}
         size="lg"
       >
         {formMode === "ADD" ? renderAddModal() : renderEditModal()}
