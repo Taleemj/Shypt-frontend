@@ -252,7 +252,7 @@ const DeliveryRequestDetails: React.FC<OrderDetailsProps> = ({
 
           <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-200">
-              <h3 className="font-bold text-slate-800">Shipment Details</h3>
+              <h3 className="font-bold text-slate-800">Order Details</h3>
             </div>
             <div className="p-6 grid grid-cols-2 gap-6 text-sm">
               <div>

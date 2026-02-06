@@ -82,52 +82,63 @@ const ClientShipmentDetails: React.FC<ClientOrderDetailsProps> = ({
   }
 
   const timelineSteps = [
-    { key: "PENDING", label: "Shipment Created", loc: "Client Portal" },
+    { key: "PENDING", label: "Shipment Created", defaultLoc: "Client Portal" },
     {
       key: "RECEIVED",
       label: "Received at Warehouse",
-      loc: order.origin_country,
+      defaultLoc: order.warehouse?.name || order.origin_country,
     },
     {
       key: "CONSOLIDATED",
       label: "Consolidated",
-      loc: order.origin_country,
+      defaultLoc: order.warehouse?.name || order.origin_country,
     },
     {
       key: "DISPATCHED",
       label: "Dispatched from Origin",
-      loc: order.origin_country,
+      defaultLoc: order.warehouse?.name || order.origin_country,
     },
-    { key: "IN_TRANSIT", label: "In Transit", loc: "In Transit" },
+    { key: "IN_TRANSIT", label: "In Transit", defaultLoc: "In Transit" },
     {
       key: "ARRIVED",
       label: "Arrived at Destination",
-      loc: "Destination Port",
+      defaultLoc: "Destination Port",
     },
     {
       key: "READY_FOR_RELEASE",
       label: "Ready for Release",
-      loc: "Local Warehouse",
+      defaultLoc: "Local Warehouse",
     },
-    { key: "RELEASED", label: "Released", loc: "Local Warehouse" },
-    { key: "DELIVERED", label: "Delivered", loc: "Final Address" },
-  ];
+    { key: "RELEASED", label: "Released", defaultLoc: "Local Warehouse" },
+    { key: "DELIVERED", label: "Delivered", defaultLoc: "Final Address" },
+  ].map((step) => {
+    const statusHistoryEntry = order.status_history.find(
+      (history) => history.status === step.key
+    );
+    return {
+      ...step,
+      loc: statusHistoryEntry?.notes || statusHistoryEntry?.location || step.defaultLoc,
+    };
+  });
 
   let currentStatusIndex = timelineSteps.findIndex(
     (step) => step.key === order.status.toUpperCase(),
   );
 
-  const timeline = timelineSteps.map((step, index) => ({
-    status: step.label,
-    date:
-      index === 0
-        ? new Date(order.created_at).toLocaleString()
-        : index <= currentStatusIndex
-          ? new Date(order.updated_at).toLocaleString()
-          : "-",
-    loc: step.loc,
-    done: index <= currentStatusIndex,
-  }));
+  const timeline = timelineSteps.map((step, index) => {
+    const statusHistoryEntry = order.status_history.find(
+      (history) => history.status === step.key,
+    );
+
+    return {
+      status: step.label,
+      date: statusHistoryEntry?.created_at
+        ? new Date(statusHistoryEntry.created_at).toLocaleString()
+        : "-",
+      loc: step.loc,
+      done: index <= currentStatusIndex,
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -211,7 +222,7 @@ const ClientShipmentDetails: React.FC<ClientOrderDetailsProps> = ({
 
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden mb-6">
               <div className="px-6 py-4 border-b border-slate-200">
-                <h3 className="font-bold text-slate-800">Order Details</h3>
+                <h3 className="font-bold text-slate-800">Shipment Details</h3>
               </div>
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
