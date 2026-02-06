@@ -175,9 +175,9 @@ const TicketDetails: React.FC<TicketDetailsProps> = ({ id, onBack }) => {
         {ticket.status === "open" && (
           <div className="p-4 border-t border-slate-200 bg-slate-50 rounded-b-lg">
             <div className="flex items-center gap-2">
-              <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full">
+              {/* <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full">
                 <Paperclip size={20} />
-              </button>
+              </button> */}
               <input
                 type="text"
                 placeholder="Type your reply..."

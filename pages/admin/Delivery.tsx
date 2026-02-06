@@ -60,7 +60,7 @@ const DeliveryOrders: React.FC = () => {
     if (!orders || !deliveries) return [];
     const deliveredPackageIds = new Set(deliveries.map((d) => d.id));
     return orders
-      .filter((order) => order.status === "RECEIVED")
+      .filter((order) => order.status !== "PENDING")
       .flatMap((order) => order.packages)
       .filter((pkg) => !deliveredPackageIds.has(pkg.id));
   }, [orders, deliveries]);
