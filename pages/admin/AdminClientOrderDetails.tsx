@@ -12,7 +12,9 @@ import {
   FileText,
   Loader2,
   Trash2,
+  Plus,
   Eye,
+  X,
 } from "lucide-react";
 import StatusBadge from "../../components/UI/StatusBadge";
 import { useToast } from "../../context/ToastContext";
@@ -264,6 +266,47 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [invoiceCurrency, setInvoiceCurrency] = useState("UGX");
+  const [invoiceItems, setInvoiceItems] = useState<LineItemData[]>([
+    { description: "", quantity: 1, unit_price: 0, total: 0 },
+  ]);
+
+  const handleInvoiceItemChange = (
+    index: number,
+    field: keyof LineItemData,
+    value: string | number,
+  ) => {
+    const newItems = [...invoiceItems];
+    if (field === "description") {
+      newItems[index][field] = value as string;
+    } else {
+      const numValue = parseFloat(value as string);
+      newItems[index][field] = isNaN(numValue) ? 0 : numValue;
+      newItems[index].total =
+        newItems[index].quantity * newItems[index].unit_price;
+    }
+    setInvoiceItems(newItems);
+  };
+
+  const addInvoiceItem = () => {
+    setInvoiceItems([
+      ...invoiceItems,
+      { description: "", quantity: 1, unit_price: 0, total: 0 },
+    ]);
+  };
+
+  const removeInvoiceItem = (index: number) => {
+    if (invoiceItems.length > 1) {
+      setInvoiceItems(invoiceItems.filter((_, i) => i !== index));
+    }
+  };
+
+  useEffect(() => {
+    if (isCreateInvoiceModalOpen) {
+      setInvoiceItems([
+        { description: "", quantity: 1, unit_price: 0, total: 0 },
+      ]);
+    }
+  }, [isCreateInvoiceModalOpen]);
 
   const [isEditPackageModalOpen, setEditPackageModalOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<PackageType | null>(
@@ -360,22 +403,20 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
     const formData = new FormData(e.currentTarget);
     const currency = formData.get("currency") as string;
     const type = formData.get("type") as string;
-    const notes = formData.get("notes") as string;
-    const amount = parseFloat(formData.get("amount") as string);
+    const notes = formData.get("notes") as string; // Keep notes for general invoice notes
 
-    if (isNaN(amount) || amount <= 0) {
-      showToast("Please enter a valid amount for the invoice.", "error");
+    const hasInvalidItems = invoiceItems.some(
+      (item) =>
+        !item.description.trim() || item.quantity <= 0 || item.unit_price <= 0,
+    );
+
+    if (hasInvalidItems) {
+      showToast(
+        "Please fill all required fields for invoice items (description, quantity, unit price greater than 0).",
+        "error",
+      );
       return;
     }
-
-    const line_items: LineItemData[] = [
-      {
-        description: notes || type,
-        quantity: 1,
-        unit_price: amount,
-        total: amount,
-      },
-    ];
 
     const data: PreviewData = {
       user_id: order.user.id,
@@ -385,7 +426,7 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
       notes: notes,
       currency: currency,
       due_date: new Date().toISOString().split("T")[0],
-      line_items: line_items,
+      line_items: invoiceItems, // Use the state variable
       order_id: order.id,
     };
 
@@ -613,7 +654,7 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
     { key: "DELIVERED", label: "Delivered", defaultLoc: "Final Address" },
   ].map((step) => {
     const statusHistoryEntry = order.status_history.find(
-      (history) => history.status === step.key
+      (history) => history.status === step.key,
     );
     return {
       ...step,
@@ -1122,31 +1163,80 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
             </select>
           </div>
           <div>
-            <label
-              htmlFor="amount"
-              className="block text-sm font-medium text-slate-700"
-            >
-              Amount ({invoiceCurrency})
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Invoice Items
             </label>
-            <input
-              id="amount"
-              name="amount"
-              type="number"
-              step="0.01"
-              required
-              placeholder="0.00"
-              className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900"
-            />
+            <div className="space-y-2">
+              {invoiceItems.map((item, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    placeholder="Description"
+                    value={item.description}
+                    onChange={(e) =>
+                      handleInvoiceItemChange(
+                        index,
+                        "description",
+                        e.target.value,
+                      )
+                    }
+                    className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900"
+                    required
+                  />
+                  <input
+                    type="number"
+                    step="1"
+                    placeholder="Qty"
+                    value={item.quantity}
+                    onChange={(e) =>
+                      handleInvoiceItemChange(index, "quantity", e.target.value)
+                    }
+                    className="w-20 border border-slate-300 rounded p-2 bg-white text-slate-900"
+                    required
+                  />
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="Unit Price"
+                    value={item.unit_price}
+                    onChange={(e) =>
+                      handleInvoiceItemChange(
+                        index,
+                        "unit_price",
+                        e.target.value,
+                      )
+                    }
+                    className="w-32 border border-slate-300 rounded p-2 bg-white text-slate-900"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeInvoiceItem(index)}
+                    className="p-2 text-red-500 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={invoiceItems.length <= 1}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={addInvoiceItem}
+              className="mt-2 text-sm text-primary-600 hover:text-primary-800 flex items-center"
+            >
+              <Plus size={16} className="mr-1" /> Add Item
+            </button>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">
-              Description / Notes
+              General Notes (Optional)
             </label>
             <textarea
               name="notes"
               className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900"
               rows={3}
-              placeholder="e.g. Freight charges for electronics shipment"
+              placeholder="e.g. Additional instructions or details"
             ></textarea>
           </div>
           <div className="flex justify-end pt-2">
