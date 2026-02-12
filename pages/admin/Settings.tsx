@@ -905,11 +905,11 @@ const Settings: React.FC = () => {
                 label: "General & Finance",
                 icon: <Globe size={18} />,
               },
-              {
-                id: "HS_CODES",
-                label: "HS Codes & Taxes",
-                icon: <BookOpen size={18} />,
-              },
+              // {
+              //   id: "HS_CODES",
+              //   label: "HS Codes & Taxes",
+              //   icon: <BookOpen size={18} />,
+              // },
               {
                 id: "WAREHOUSES",
                 label: "Warehouses",

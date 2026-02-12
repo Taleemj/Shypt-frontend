@@ -109,7 +109,7 @@ const DeliveryOrders: React.FC = () => {
     if (user) {
       fetchData();
     }
-  }, [user]);
+  }, []);
 
   const handleCreateDelivery = async () => {
     if (

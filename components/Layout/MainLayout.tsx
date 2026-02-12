@@ -72,7 +72,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
     };
 
     fetchUserAndCheck();
-  }, [user, currentPath, getUserProfile, showToast, navigate]);
+  }, [user, currentPath]);
 
   const isAdmin =
     user?.user_type === "super_user" ||
@@ -137,14 +137,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           </div>
           <div className="flex items-center space-x-6">
             {/* Notification Bell */}
-            <button
-              onClick={handleBellClick}
-              className="relative p-2 text-slate-400 hover:bg-slate-100 rounded-full transition group"
-              title="Notifications"
-            >
-              <Bell size={20} className="group-hover:text-slate-600" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-            </button>
+            {user.user_type === "user" && (
+              <button
+                onClick={handleBellClick}
+                className="relative p-2 text-slate-400 hover:bg-slate-100 rounded-full transition group"
+                title="Notifications"
+              >
+                <Bell size={20} className="group-hover:text-slate-600" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+              </button>
+            )}
 
             {/* User Profile */}
             <div
