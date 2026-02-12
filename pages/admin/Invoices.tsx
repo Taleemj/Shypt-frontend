@@ -211,11 +211,12 @@ const Invoices: React.FC = () => {
   const [items, setItems] = useState<InvoiceItem[]>([
     { description: "", amount: 0.0 },
   ]);
+  const [userSearch, setUserSearch] = useState("");
 
   const handleItemChange = (
     index: number,
     field: keyof InvoiceItem,
-    value: string
+    value: string,
   ) => {
     const newItems = [...items];
     if (field === "amount") {
@@ -287,13 +288,13 @@ const Invoices: React.FC = () => {
     const notes = formData.get("notes") as string;
 
     const hasInvalidItems = items.some(
-      (item) => !item.description.trim() || item.amount <= 0
+      (item) => !item.description.trim() || item.amount <= 0,
     );
 
     if (!userId || !type || !currency || hasInvalidItems) {
       showToast(
         "Please fill all required fields, including item descriptions and amounts greater than 0.",
-        "error"
+        "error",
       );
       return;
     }
@@ -440,6 +441,19 @@ const Invoices: React.FC = () => {
     return { usdOutstanding: usd, ugxOutstanding: ugx };
   }, [invoices]);
 
+  const filteredUsers = useMemo(() => {
+    return usersList.filter(
+      (user) =>
+        user.full_name.toLowerCase().includes(userSearch.toLowerCase()) ||
+        user.id.toString().includes(userSearch.toLowerCase()),
+    );
+  }, [userSearch, usersList]);
+
+  const handleCloseCreateModal = () => {
+    setIsCreateOpen(false);
+    setUserSearch("");
+  };
+
   if (isLoadingInvoices) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -530,7 +544,7 @@ const Invoices: React.FC = () => {
       {/* CREATE INVOICE MODAL */}
       <Modal
         isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
+        onClose={handleCloseCreateModal}
         title="Generate New Invoice"
       >
         <form onSubmit={handlePreview} className="space-y-4">
@@ -538,13 +552,20 @@ const Invoices: React.FC = () => {
             <label className="block text-sm font-medium text-slate-700">
               Select Client
             </label>
+            <input
+              type="text"
+              placeholder="Search by name or ID..."
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900 mb-2"
+            />
             <select
               name="client"
               className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900"
             >
-              {usersList.map((user) => (
+              {filteredUsers.map((user) => (
                 <option key={user.id} value={user.id}>
-                  {user.full_name}
+                  {user.full_name} - {user.id}
                 </option>
               ))}
             </select>
@@ -639,7 +660,7 @@ const Invoices: React.FC = () => {
           <div className="flex justify-end pt-2">
             <button
               type="button"
-              onClick={() => setIsCreateOpen(false)}
+              onClick={handleCloseCreateModal}
               className="px-4 py-2 border rounded text-slate-600 mr-2 bg-white"
             >
               Cancel
@@ -671,4 +692,3 @@ const Invoices: React.FC = () => {
 };
 
 export default Invoices;
-
