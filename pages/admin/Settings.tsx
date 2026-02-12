@@ -1396,7 +1396,7 @@ const Settings: React.FC = () => {
                 name="code"
                 required
                 className="w-full border p-2 rounded mt-1 bg-white uppercase"
-                maxLength={2}
+                // maxLength={2}
                 placeholder="e.g. TR"
               />
             </div>
