@@ -7,6 +7,7 @@ import {
   CheckCircle,
   Truck,
 } from "lucide-react";
+import Modal from "../../components/UI/Modal";
 import StatusBadge from "../../components/UI/StatusBadge";
 import { useToast } from "../../context/ToastContext";
 import useAssistedShopping from "../../api/assistedShopping/useAssistedShopping";
@@ -30,6 +31,10 @@ const ClientShoppingDetails: React.FC<ClientShoppingDetailsProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isPaying, setIsPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [isSubmittingRejection, setIsSubmittingRejection] = useState(false);
 
   const { getAssistedShopping, updateAssistedShopping } = useAssistedShopping();
   const { createInvoice, addItemToInvoice } = useInvoice();
@@ -111,6 +116,32 @@ const ClientShoppingDetails: React.FC<ClientShoppingDetailsProps> = ({
       } finally {
         setIsPaying(false);
       }
+    }
+  };
+
+  const handleRejectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectionReason) {
+      showToast("Please provide a reason for rejection.", "error");
+      return;
+    }
+    if (!request) return;
+
+    setIsSubmittingRejection(true);
+    try {
+      const payload: Partial<UpdateAssistedShoppingPayload> = {
+        status: "declined",
+        notes: rejectionReason,
+      };
+      await updateAssistedShopping(request.id, payload);
+      showToast("Quote has been rejected.", "success");
+      setIsRejectModalOpen(false);
+      setRejectionReason("");
+      fetchRequestDetails(); // to refresh the data
+    } catch (error) {
+      showToast("Failed to reject quote. Please try again.", "error");
+    } finally {
+      setIsSubmittingRejection(false);
     }
   };
 
@@ -331,22 +362,32 @@ const ClientShoppingDetails: React.FC<ClientShoppingDetailsProps> = ({
                   </div>
 
                   {request.status === "quoted" && (
-                    <button
-                      onClick={handlePay}
-                      disabled={isPaying}
-                      className="w-full mt-4 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-bold flex items-center justify-center disabled:bg-green-400 disabled:cursor-not-allowed"
-                    >
-                      {isPaying ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Processing Payment...
-                        </>
-                      ) : (
-                        <>
-                          <CreditCard size={18} className="mr-2" /> Pay Now
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-x-2">
+                      <button
+                        onClick={() => setIsRejectModalOpen(true)}
+                        disabled={isPaying || isSubmittingRejection}
+                        className="w-full mt-4 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 font-bold flex items-center justify-center disabled:bg-red-400 disabled:cursor-not-allowed"
+                      >
+                        Reject
+                      </button>
+                      <button
+                        onClick={handlePay}
+                        disabled={isPaying || isSubmittingRejection}
+                        className="w-full mt-4 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-bold flex items-center justify-center disabled:bg-green-400 disabled:cursor-not-allowed"
+                      >
+                        {isPaying ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Processing Payment...
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard size={18} className="mr-2" /> Accept &
+                            Pay
+                          </>
+                        )}
+                      </button>
+                    </div>
                   )}
 
                   {request.status === "paid" && (
@@ -355,9 +396,16 @@ const ClientShoppingDetails: React.FC<ClientShoppingDetailsProps> = ({
                     </div>
                   )}
 
+                  {request.status === "declined" && (
+                    <div className="w-full mt-4 bg-red-50 text-red-700 py-3 rounded-lg border border-red-200 flex items-center justify-center font-bold">
+                      <CheckCircle size={18} className="mr-2" /> Quote Declined
+                    </div>
+                  )}
+
                   {request.status === "purchased" && (
                     <div className="w-full mt-4 bg-blue-50 text-blue-700 py-3 rounded-lg border border-blue-200 flex items-center justify-center font-bold">
-                      <ShoppingCart size={18} className="mr-2" /> Item Purchased
+                      <ShoppingCart size={18} className="mr-2" /> Item
+                      Purchased
                     </div>
                   )}
                 </div>
@@ -374,7 +422,9 @@ const ClientShoppingDetails: React.FC<ClientShoppingDetailsProps> = ({
               <div key={i} className="relative pl-6">
                 <div
                   className={`absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full ${
-                    i === updates.length - 1 ? "bg-primary-500" : "bg-slate-300"
+                    i === updates.length - 1
+                      ? "bg-primary-500"
+                      : "bg-slate-300"
                   }`}
                 ></div>
                 <p className="text-sm font-medium text-slate-800">{u.text}</p>
@@ -384,6 +434,43 @@ const ClientShoppingDetails: React.FC<ClientShoppingDetailsProps> = ({
           </div>
         </div>
       </div>
+      <Modal
+        isOpen={isRejectModalOpen}
+        onClose={() => setIsRejectModalOpen(false)}
+        title={`Reject Quote for REQ-${request?.id}`}
+      >
+        <form onSubmit={handleRejectSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Reason for Rejection
+            </label>
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              rows={4}
+              required
+              className="w-full border border-slate-300 rounded p-2 mt-1 bg-white text-slate-900"
+              placeholder="e.g., The quoted price is too high, found a better deal elsewhere, etc."
+            ></textarea>
+          </div>
+          <div className="flex justify-end pt-4">
+            <button
+              type="submit"
+              disabled={isSubmittingRejection}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 flex items-center justify-center w-40 disabled:bg-red-400 disabled:cursor-not-allowed"
+            >
+              {isSubmittingRejection ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Submitting...
+                </>
+              ) : (
+                "Submit Rejection"
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

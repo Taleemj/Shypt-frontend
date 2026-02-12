@@ -14,6 +14,7 @@ import {
   Tag,
   Info,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import StatusBadge from "../../components/UI/StatusBadge";
 import { useToast } from "../../context/ToastContext";
@@ -43,8 +44,22 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
   const [request, setRequest] = useState<AssistedShoppingItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { getAssistedShopping, updateAssistedShopping } = useAssistedShopping();
+  // Quote state for multi-item
+  interface ItemQuote {
+    name: string;
+    quantity: number;
+    netCost: number;
+  }
+  const [itemQuotes, setItemQuotes] = useState<ItemQuote[]>([]);
+  const [domesticShippingCost, setDomesticShippingCost] = useState<number>(0);
+
+  const {
+    getAssistedShopping,
+    updateAssistedShopping,
+    addAssistedShoppingQuote,
+  } = useAssistedShopping();
 
   const formatCurrency = (amount: number) => {
     return `$ ${amount.toLocaleString("en-US", {
@@ -72,6 +87,86 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
     }
   }, [requestId]);
 
+  const handleOpenQuoteModal = () => {
+    if (!request) return;
+    const initialQuotes =
+      request.items?.map((item) => ({
+        name: item.name,
+        quantity: (item as any).quantity || 1,
+        netCost: 0,
+      })) || [];
+    setItemQuotes(initialQuotes);
+    setDomesticShippingCost(0);
+    setModalMode("QUOTE");
+  };
+
+  const handleQuoteItemChange = (index: number, netCost: number) => {
+    const updatedQuotes = [...itemQuotes];
+    updatedQuotes[index].netCost = netCost;
+    setItemQuotes(updatedQuotes);
+  };
+
+  const handleQuoteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!request) return;
+    setIsSubmitting(true);
+
+    try {
+      // Add each item's net cost as a quote item
+      for (const item of itemQuotes) {
+        if (item.netCost > 0) {
+          await addAssistedShoppingQuote({
+            assisted_shopping_id: request.id,
+            item_name: item.name,
+            quantity: item.quantity,
+            unit_price: item.netCost,
+          });
+        }
+      }
+
+      // Add domestic shipping if provided
+      if (domesticShippingCost > 0) {
+        await addAssistedShoppingQuote({
+          assisted_shopping_id: request.id,
+          item_name: "Domestic Shipping",
+          quantity: 1,
+          unit_price: domesticShippingCost,
+        });
+      }
+
+      // Calculate and add service fee
+      const subtotal =
+        itemQuotes.reduce(
+          (acc, item) => acc + item.netCost * item.quantity,
+          0,
+        ) + domesticShippingCost;
+      const serviceFee = subtotal * 0.1;
+      if (serviceFee > 0) {
+        await addAssistedShoppingQuote({
+          assisted_shopping_id: request.id,
+          item_name: "Service Fee (10%)",
+          quantity: 1,
+          unit_price: serviceFee,
+        });
+      }
+
+      // Update the main request status to 'quoted'
+      const payload: Partial<UpdateAssistedShoppingPayload> = {
+        status: "quoted",
+      };
+      // @ts-ignore
+      await updateAssistedShopping(request.id, payload);
+
+      showToast("Quotation sent to client", "success");
+      setModalMode(null);
+      fetchRequestDetails();
+    } catch (error) {
+      showToast("Failed to send quotation.", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handlePurchaseSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!request) return;
@@ -91,7 +186,7 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
       await updateAssistedShopping(request.id, payload);
       showToast(
         "Procurement details saved. Item marked as Purchased.",
-        "success"
+        "success",
       );
       setModalMode(null);
       fetchRequestDetails();
@@ -103,7 +198,7 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
   const quoteTotal =
     request?.quote_items?.reduce(
       (acc, q) => acc + q.unit_price * q.quantity,
-      0
+      0,
     ) || 0;
   const quoteSubtotal =
     request?.quote_items
@@ -149,7 +244,7 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
     return getStatusHistory(
       request.status,
       request.created_at,
-      request.updated_at
+      request.updated_at,
     );
   }, [request]);
 
@@ -200,12 +295,22 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
           </div>
         </div>
         <div className="flex space-x-2 mt-4 md:mt-0">
-          <button
-            onClick={() => window.print()}
-            className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 text-sm font-bold flex items-center"
-          >
-            <Printer size={16} className="mr-2" /> Print Quote
-          </button>
+          {request.status !== "requested" && (
+            <button
+              onClick={() => window.print()}
+              className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 text-sm font-bold flex items-center"
+            >
+              <Printer size={16} className="mr-2" /> Print Quote
+            </button>
+          )}
+          {request.status === "requested" && (
+            <button
+              onClick={handleOpenQuoteModal}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-bold shadow-md"
+            >
+              Issue Quote
+            </button>
+          )}
           {request.status === "paid" && (
             <button
               onClick={() => setModalMode("PURCHASE")}
@@ -238,16 +343,19 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                 </div>
                 {/* Removed redundant item details from here, now in Requested Items Card */}
                 <div className="text-right">
-                   <p className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">
+                  <p className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">
                     Request ID
                   </p>
                   <p className="font-bold text-slate-900 text-lg">
                     REQ-{request.id}
                   </p>
-                   {request.notes && <p className="text-sm text-slate-600 mt-1">Notes: {request.notes}</p>}
+                  {request.notes && (
+                    <p className="text-sm text-slate-600 mt-1">
+                      Notes: {request.notes}
+                    </p>
+                  )}
                 </div>
               </div>
-
               {/* Requested Items Card - Admin View */}
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 mb-6">
                 <div className="p-6 border-b border-slate-200">
@@ -256,9 +364,14 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                 <div className="p-6 space-y-4">
                   {request.items && request.items.length > 0 ? (
                     request.items.map((item, index) => (
-                      <div key={index} className="p-3 bg-slate-50 rounded-md border border-slate-100">
+                      <div
+                        key={index}
+                        className="p-3 bg-slate-50 rounded-md border border-slate-100"
+                      >
                         <div className="flex justify-between items-start">
-                          <p className="font-semibold text-slate-700">{item.name}</p>
+                          <p className="font-semibold text-slate-700">
+                            {item.name}
+                          </p>
                           <a
                             href={item.url}
                             target="_blank"
@@ -269,14 +382,20 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                             Link
                           </a>
                         </div>
-                        {item.notes && <p className="text-xs text-slate-500 mt-1">Notes: {item.notes}</p>}
+                        {item.notes && (
+                          <p className="text-xs text-slate-500 mt-1">
+                            Notes: {item.notes}
+                          </p>
+                        )}
                       </div>
                     ))
                   ) : (
                     <div className="p-3 bg-slate-50 rounded-md border border-slate-100">
                       <div className="flex justify-between items-start">
-                        <p className="font-semibold text-slate-700">{request.name}</p>
-                         <a
+                        <p className="font-semibold text-slate-700">
+                          {request.name}
+                        </p>
+                        <a
                           href={request.url}
                           target="_blank"
                           rel="noreferrer"
@@ -286,14 +405,18 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
                           Link
                         </a>
                       </div>
-                       <p className="text-xs text-slate-500 mt-1">Quantity: {request.quantity}</p>
-                      {request.notes && <p className="text-xs text-slate-500 mt-1">Notes: {request.notes}</p>}
+                      <p className="text-xs text-slate-500 mt-1">
+                        Quantity: {request.quantity}
+                      </p>
+                      {request.notes && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          Notes: {request.notes}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
-
-
               {request.status === "purchased" && (
                 <div className="mb-10 bg-slate-900 text-white p-6 rounded-2xl shadow-xl ring-1 ring-slate-800">
                   <h4 className="flex items-center text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-4">
@@ -388,6 +511,124 @@ const ShoppingDetails: React.FC<ShoppingDetailsProps> = ({
           </div>
         </div>
       </div>
+      <Modal
+        isOpen={modalMode === "QUOTE"}
+        onClose={() => setModalMode(null)}
+        title={`Generate Quotation for REQ-${request?.id}`}
+        size="lg"
+      >
+        <form onSubmit={handleQuoteSubmit} className="space-y-4">
+          <div className="space-y-4 max-h-[40vh] overflow-y-auto p-2">
+            {itemQuotes.map((item, index) => (
+              <div
+                key={index}
+                className="p-4 border rounded-lg space-y-2 bg-slate-50"
+              >
+                <p className="font-bold text-slate-800">
+                  {item.name}{" "}
+                  <span className="font-normal text-slate-500">
+                    (Qty: {item.quantity})
+                  </span>
+                </p>
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                      Item Net Cost ($)
+                    </label>
+                    <input
+                      required
+                      type="number"
+                      step="0.01"
+                      value={item.netCost || ""}
+                      className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900"
+                      onChange={(e) =>
+                        handleQuoteItemChange(
+                          index,
+                          parseFloat(e.target.value) || 0,
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                Total Domestic Shipping ($)
+              </label>
+              <input
+                required
+                type="number"
+                step="0.01"
+                className="w-full border border-slate-300 rounded p-2 bg-white text-slate-900"
+                value={domesticShippingCost || ""}
+                onChange={(e) =>
+                  setDomesticShippingCost(parseFloat(e.target.value) || 0)
+                }
+              />
+            </div>
+          </div>
+
+          <div className="bg-slate-100 p-4 rounded-xl space-y-2 text-sm border border-slate-200">
+            <div className="flex justify-between">
+              <span>Items Subtotal:</span>
+              <span>
+                {formatCurrency(
+                  itemQuotes.reduce(
+                    (acc, item) => acc + item.netCost * item.quantity,
+                    0,
+                  ),
+                )}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Domestic Shipping:</span>
+              <span>{formatCurrency(domesticShippingCost)}</span>
+            </div>
+            <div className="flex justify-between text-primary-600 font-bold">
+              <span>Service Fee (10%):</span>
+              <span>
+                {formatCurrency(
+                  (itemQuotes.reduce(
+                    (acc, item) => acc + item.netCost * item.quantity,
+                    0,
+                  ) +
+                    domesticShippingCost) *
+                    0.1,
+                )}
+              </span>
+            </div>
+            <div className="flex justify-between text-lg font-black text-slate-900 border-t pt-2">
+              <span>Final Quote:</span>
+              <span>
+                {formatCurrency(
+                  (itemQuotes.reduce(
+                    (acc, item) => acc + item.netCost * item.quantity,
+                    0,
+                  ) +
+                    domesticShippingCost) *
+                    1.1,
+                )}
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full bg-primary-600 text-white py-3 rounded-lg font-bold hover:bg-primary-700 shadow-lg transition flex items-center justify-center disabled:bg-primary-400 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Sending...
+              </>
+            ) : (
+              "Send Quotation to Client"
+            )}
+          </button>
+        </form>
+      </Modal>
       <Modal
         isOpen={modalMode === "PURCHASE"}
         onClose={() => setModalMode(null)}
