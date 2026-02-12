@@ -177,7 +177,7 @@ const ClientOrders: React.FC = () => {
     console.log("vendorTrackingId", vendorTrackingId);
     console.log("cargoDeclarations", cargoDeclarations);
     const found = cargoDeclarations.find(
-      (decl) => detail.tracking_number === vendorTrackingId,
+      (decl) => decl.tracking_number === vendorTrackingId,
     );
     if (found) {
       setMatchedDeclaration(found);

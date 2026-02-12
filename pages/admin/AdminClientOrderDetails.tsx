@@ -658,7 +658,9 @@ const AdminClientOrderDetails: React.FC<AdminClientOrderDetailsProps> = ({
     );
     return {
       ...step,
-      loc: statusHistoryEntry?.notes || step.defaultLoc,
+      loc:
+        statusHistoryEntry?.notes + " - " + statusHistoryEntry?.location ||
+        step.defaultLoc,
     };
   });
 
